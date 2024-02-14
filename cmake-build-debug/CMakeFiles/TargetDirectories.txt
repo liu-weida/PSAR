@@ -1,0 +1,3 @@
+/home/weida/PASR/cmake-build-debug/CMakeFiles/PASR.dir
+/home/weida/PASR/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/weida/PASR/cmake-build-debug/CMakeFiles/rebuild_cache.dir
