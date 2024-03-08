@@ -1,10 +1,14 @@
 package machine;
 
-import utils.channel.ServerProcessor;
+import utils.exception.ServerException;
+import utils.message.Message;
+import utils.processor.ServerProcessor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.List;
 
 public class Server implements Machine{
     private final int port;
@@ -34,8 +38,13 @@ public class Server implements Machine{
         }
     }
 
+
+    public int getPort() {
+        return port;
+    }
+
     @Override
-    public void request() {
+    public void request(String methodType, List<Object> args) {
 
     }
 
