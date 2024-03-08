@@ -23,6 +23,7 @@ public class Server implements Machine{
 
     public void start(){
         try (ServerSocket ss = new ServerSocket(port)) {
+            System.out.println("Server started on port " + port);
             int i = 0;
             while (! Thread.currentThread().isInterrupted()) {
                 try (Socket client = ss.accept()) {
