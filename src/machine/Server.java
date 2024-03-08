@@ -12,14 +12,30 @@ import java.util.List;
 
 public class Server implements Machine{
     private final int port;
-    private final String id;
+    private final String serverId;
     private final ServerProcessor processor;
+    private HashMap<String, String> heap;
+    private final int heapMaxSize = 10;
+    private int elementNum = 0;
+
 
     public Server(int port, String id, ServerProcessor processor){
         this.port = port;
-        this.id = id;
+        this.serverId = id;
         this.processor = processor;
+        this.heap = new HashMap<>();
     }
+
+
+    public void modifyHeap(String clientId, String variableId){
+        if (elementNum < heapMaxSize){
+            heap.put(clientId, variableId);
+            elementNum++;
+        } else {
+            throw new ServerException("Heap is full");
+        }
+    }
+
 
     public void start(){
         try (ServerSocket ss = new ServerSocket(port)) {
@@ -28,6 +44,7 @@ public class Server implements Machine{
             while (! Thread.currentThread().isInterrupted()) {
                 try (Socket client = ss.accept()) {
                     System.out.println("Debut de requête " + i);
+                    //respond(processor.process(client));
                     processor.process(client);
                 }
                 System.out.println("Fin de requête " + i);
@@ -50,7 +67,7 @@ public class Server implements Machine{
     }
 
     @Override
-    public void respond() {
+    public void respond(Message message) {
 
     }
 }

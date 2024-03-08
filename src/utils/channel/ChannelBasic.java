@@ -13,20 +13,16 @@ public class ChannelBasic implements Channel {
     }
 
     @Override
-    public void send(byte[] bytesArray) throws IOException {
-        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-        dos.writeInt(bytesArray.length);
-        dos.write(bytesArray);
-        dos.flush();
+    public void send(Object object) throws IOException{
+        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+        oos.writeObject(object);
+        oos.flush();
     }
 
     @Override
-    public byte[] recv() throws IOException {
-        DataInputStream dis = new DataInputStream(socket.getInputStream());
-        byte[] recv = new byte[dis.readInt()];
-        for (int i = 0; i < recv.length; i++)
-            recv[i] = dis.readByte();
-        return recv;
+    public Object recv() throws IOException, ClassNotFoundException  {
+        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        return ois.readObject();
     }
 
     @Override
@@ -47,5 +43,10 @@ public class ChannelBasic implements Channel {
     @Override
     public int getLocalPort() {
         return socket.getLocalPort();
+    }
+
+    @Override
+    public Socket getSocket() {
+        return socket;
     }
 }

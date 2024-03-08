@@ -1,7 +1,14 @@
 package machine;
 
-public interface Machine {
-    void request();
+import utils.message.Message;
 
-    void respond();
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
+public interface Machine {
+    void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException;
+
+    void respond(Message message) throws IllegalAccessException, InvocationTargetException;
+
+
 }

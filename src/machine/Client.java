@@ -12,17 +12,17 @@ import java.util.List;
 
 public class Client implements Machine{
     private final int port;
-    private final String id;
+    private final String clientId;
     private Channel channel;
 
-    public Client(int port, String id, Channel channel){
+    public Client(int port, String clientId, Channel channel){
         this.port = port;
-        this.id = id;
+        this.clientId = clientId;
         this.channel = channel;
     }
 
     public String getId() {
-        return id;
+        return clientId;
     }
 
     public Channel getChannel() {
@@ -30,8 +30,13 @@ public class Client implements Machine{
     }
 
     @Override
-    public void request() {
-
+    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException {
+        for (Method method: getClass().getDeclaredMethods()){
+            if (methodType.equals(method.getName())) {
+                method.setAccessible(true);
+                method.invoke(args);
+            }
+        }
     }
 
     @Override
