@@ -1,7 +1,5 @@
 package utils.channel;
 
-import utils.channel.Channel;
-
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -23,7 +21,7 @@ public class ChannelBasic implements Channel {
     }
 
     @Override
-    public byte[] recv() throws IOException, ClassNotFoundException {
+    public byte[] recv() throws IOException {
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         byte[] recv = new byte[dis.readInt()];
         for (int i = 0; i < recv.length; i++)
