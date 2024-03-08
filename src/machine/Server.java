@@ -14,7 +14,7 @@ public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
-    private HashMap<String, String> heap;
+    private HashMap<String, List<String>> heap;//<variableId,List<clientId>>
     private final int heapMaxSize = 10;
     private int elementNum = 0;
 
@@ -36,6 +36,9 @@ public class Server implements Machine{
         }
     }
 
+    public boolean dataExistsHeap(String clientId, String variableId){
+
+    }
 
     public void start(){
         try (ServerSocket ss = new ServerSocket(port)) {

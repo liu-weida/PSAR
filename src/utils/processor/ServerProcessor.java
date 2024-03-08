@@ -9,6 +9,7 @@ import utils.message.Message;
 import utils.message.ServerMessage;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
 
@@ -23,7 +24,8 @@ public class ServerProcessor implements Processor{
 
         Channel channel = new ChannelBasic(socket);
         try {
-
+            int clientPort = channel.getRemotePort();
+            InetAddress clienthost = channel.getRemoteHost();
             ClientMessage clientMessage = (ClientMessage)channel.recv();
             // Class<?> clazz = clientMessage.getClazz();
             String clientId = clientMessage.getClientId();
@@ -47,7 +49,7 @@ public class ServerProcessor implements Processor{
                     //如果数据未上锁则上锁并返回servermessage信息并等待客户端回信
                     break;
                 case "dAccessRead":
-                    System.out.println("暂时占位");
+                    System.out.println("收到客户端阅读请求");
                     break;
                 case "dRelease":
                     System.out.println("数据使用完毕信息");
@@ -55,7 +57,7 @@ public class ServerProcessor implements Processor{
                     //给数据解锁
                     break;
                 case "dFree":
-                    System.out.println("暂时占位");
+                    System.out.println("收到客户端删除数据请求");
                     //如果没有此数据，回复报错信息
                     //如果存在，通知所有拥有数据的客户，收到所有回复后从heap中删除
                     break;
