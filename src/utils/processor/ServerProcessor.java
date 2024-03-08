@@ -56,7 +56,8 @@ public class ServerProcessor implements Processor{
                     break;
                 case "dFree":
                     System.out.println("暂时占位");
-                    //
+                    //如果没有此数据，回复报错信息
+                    //如果存在，通知所有拥有数据的客户，都成功后从heap中删除
                     break;
                 default:
                     // no such method
