@@ -75,6 +75,7 @@ public class Server implements Machine{
     public void deleteVariable(String variableId){
         if (heap.containsKey(variableId)) {
             heap.remove(variableId);
+            elementNum--;
         }
     }
 
