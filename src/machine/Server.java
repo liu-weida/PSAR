@@ -14,7 +14,7 @@ public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
-    private HashMap<String, List<String>> heap;//<variableId,List<clientId>>
+    private HashMap<String, List<String>> heap;//HashMap<variableId,List<clientId>>
     private final int heapMaxSize = 10;
     private int elementNum = 0;
 
@@ -36,8 +36,17 @@ public class Server implements Machine{
         }
     }
 
-    public boolean dataExistsHeap(String clientId, String variableId){
+    public boolean variableExistsHeap(String variableId){
+        return heap.containsKey(variableId);
+    }
 
+    public boolean dataExistsHeap(String clientId, String variableId){
+        if (variableExistsHeap(variableId)){
+            List<String> clientIds = heap.get(variableId);
+            return clientIds.contains(clientId);
+        }else{
+            return false;
+        }
     }
 
     public void start(){
