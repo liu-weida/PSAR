@@ -49,11 +49,6 @@ public class ServerProcessor implements Processor{
                 //传输错误
             }
 
-
-            //les restes a faire
-            ServerMessage serverMessage = null;
-            channel.send(serverMessage);
-
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -64,102 +59,97 @@ public class ServerProcessor implements Processor{
 
     private void handleDMalloc(String variableId, String clientId, Channel channel) throws IOException {
         System.out.println("收到初始化数据信息");
-        ServerMessage message = null;
         if(server.variableExistsHeap(variableId)){
-            message = new ServerMessage("respondDMalloc",false,"dMalloc fail(data already exists)");
+            ServerMessage message = new ServerMessage("respondDMalloc",false,"dMalloc fail(data already exists)");
             channel.send(message);
         }else{
             try{
                 server.insertData(clientId, variableId);
             }catch(ServerException e){
-                message = new ServerMessage("respondDMalloc",false,"dMalloc fail(hashmap is full)");
+                ServerMessage message = new ServerMessage("respondDMalloc",false,"dMalloc fail(insert error)");
                 channel.send(message);
                 return;
             }
-            message = new ServerMessage("respondDMalloc",true,"dMalloc success"); // 确保成功消息在try块内部
+            ServerMessage message = new ServerMessage("respondDMalloc",true,"dMalloc success"); // 确保成功消息在try块内部
             channel.send(message);
         }
     }
 
     private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
         System.out.println("收到写入请求");
-        ServerMessage message = null;
         //数据锁
         if(!server.variableExistsHeap(variableId)){
-            message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(data not exists)");
+            ServerMessage message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(data not exists)");
             channel.send(message);
             return;
         }
-        message = new ServerMessage("respondDAccessWrite",true,"dAccessWrite waiting for dRelease");
+        ServerMessage message = new ServerMessage("respondDAccessWrite",true,"dAccessWrite waiting for dRelease");
         channel.send(message);
         ClientMessage clientMessageWrite= (ClientMessage)channel.recv();
         if(!Objects.equals(clientMessageWrite.getCommand(), "dRelease")){
-            message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(command error)");
-            channel.send(message);
+            ServerMessage message1 = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(command error)");
+            channel.send(message1);
             //解锁下一个notifyone
-            return;
         }else{
             try{//更新数据到list首位
                 server.deleteData(clientId, variableId);
                 server.insertData(clientId, variableId);
             }catch(ServerException e){
-                message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(hashmap is full)");
-                channel.send(message);
+                ServerMessage message1 = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(insert error)");
+                channel.send(message1);
                 //解锁下一个notifyone
                 return;
             }
-            message = new ServerMessage("respondDAccessWrite",true,"dAccessWrite success");
-            channel.send(message);
+            ServerMessage message1 = new ServerMessage("respondDAccessWrite",true,"dAccessWrite success");
+            channel.send(message1);
             //解锁下一个notifyone
         }
     }
     private void handleDAccessRead(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
         System.out.println("收到客户端阅读请求");
-        ServerMessage message = null;
         //数据锁
         if (!server.variableExistsHeap(variableId)) {
-            message = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(data not exists)");
+            ServerMessage message = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(data not exists)");
             channel.send(message);
             //解锁下一个notifyone
             return;
         }
-        message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease");
+        ServerMessage message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease");
         channel.send(message);
         ClientMessage clientMessageRead = (ClientMessage) channel.recv();
         if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
-            message = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(command error)");
-            channel.send(message);
+            ServerMessage message1 = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(command error)");
+            channel.send(message1);
             //解锁下一个notifyone
         } else {
             try {
                 server.deleteData(clientId, variableId);
                 server.insertData(clientId, variableId);
             } catch (ServerException e) {
-                channel.send(e);
+                ServerMessage message1 = new ServerMessage("respondDAccessRead",false,"dAccessRead fail(insert error)");
+                channel.send(message1);
                 //解锁下一个notifyone
                 return;
             }
-            message = new ServerMessage("respondDAccessRead", true, "dAccessRead success");
-            channel.send(message);
+            ServerMessage message1 = new ServerMessage("respondDAccessRead", true, "dAccessRead success");
+            channel.send(message1);
             //解锁下一个notifyone
         }
     }
     private void handleDRelease(Channel channel) throws IOException {
         System.out.println("数据使用完毕信息");
-        ServerMessage message = null;
-        message = new ServerMessage("respondDRelease", false, "command error");
+        ServerMessage message = new ServerMessage("respondDRelease", false, "command error");
         channel.send(message);
     }
     private void handleDFree(String variableId, Channel channel) throws IOException {
         System.out.println("收到客户端删除数据请求");
-        ServerMessage message = null;
         //数据锁
         if (!server.variableExistsHeap(variableId)) {
-            message = new ServerMessage("respondDFree", false, "Dfree fail(data not exists");
+            ServerMessage message = new ServerMessage("respondDFree", false, "Dfree fail(data not exists");
             channel.send(message);
         } else {//如果存在
             server.deleteVariable(variableId);
-            message = new ServerMessage("respondDFree", true, "Dfree success");
+            ServerMessage message = new ServerMessage("respondDFree", true, "Dfree success");
             channel.send(message);
             //notifyall
         }
