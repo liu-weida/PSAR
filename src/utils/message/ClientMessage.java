@@ -5,19 +5,18 @@ import java.io.Serializable;
 public class ClientMessage implements Message, Serializable {
     private final String command;
     private String clientId = null;
-    private String varibaleId = null;
-    private Object obj = null;
+    private String variableId = null;
 
     public ClientMessage(String command, String clientId, String variableId) {  //for dMalloc,dAccessWrite,
                                                                                         // dAccessRead,dFree
         this.command = command;
         this.clientId = clientId;
-        this.varibaleId = variableId;
+        this.variableId = variableId;
     }
 
-    public ClientMessage(String command, Object obj) {  // pour dRelease
+    public ClientMessage(String command, String variableId) {  // pour dRelease
         this.command = command;
-        this.obj = obj;
+        this.variableId = variableId;
     }
 
     public String getCommand() {
@@ -28,12 +27,7 @@ public class ClientMessage implements Message, Serializable {
         return clientId;
     }
 
-    public String getVaribaleId() {
-        return varibaleId;
+    public String getVariableId() {
+        return variableId;
     }
-
-    public Object getObj() {
-        return obj;
-    }
-
 }

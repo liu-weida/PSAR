@@ -26,12 +26,11 @@ public class ServerProcessor implements Processor{
         try {
             ClientMessage clientMessage = (ClientMessage)channel.recv();
             String clientId = clientMessage.getClientId();
-            String variableId = clientMessage.getVaribaleId();
+            String variableId = clientMessage.getVariableId();
 
             int clientPort = channel.getRemotePort();
             InetAddress clienthost = channel.getRemoteHost();
             // Class<?> clazz = clientMessage.getClazz();
-            Object obj = clientMessage.getObj();
 
             try {
                 switch (clientMessage.getCommand()) {

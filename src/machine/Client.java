@@ -75,8 +75,8 @@ public class Client implements Machine{
         return 1;
     }
 
-    private void dRelease(Object obj) throws IOException, ClassNotFoundException{
-        ClientMessage message = new ClientMessage("dRelease", obj);
+    private void dRelease(String variableId) throws IOException, ClassNotFoundException{
+        ClientMessage message = new ClientMessage("dRelease", variableId);
         channel.send(message);
         ServerMessage serverMessage = (ServerMessage) channel.recv();
     }
