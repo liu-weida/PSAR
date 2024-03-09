@@ -7,6 +7,7 @@ import utils.processor.ServerProcessor;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -27,14 +28,37 @@ public class Server implements Machine{
     }
 
 
-    public void modifyHeap(String clientId, String variableId){
-        if (elementNum < heapMaxSize){
-            heap.put(clientId, variableId);
-            elementNum++;
+
+    //如果不存在:插入，如果已经存在:无事发生，如果heap满了:报错
+    public void insertData(String variableId, String clientId) {
+        if (variableExistsHeap(variableId)) {
+            if (!dataExistsHeap(clientId, variableId)) {
+                heap.get(variableId).add(clientId);
+            }
         } else {
-            throw new ServerException("Heap is full");
+            if(elementNum < heapMaxSize){
+                List<String> newList = new ArrayList<>();
+                newList.add(clientId);
+                heap.put(variableId, newList);
+                elementNum++;
+            }else {
+                throw new ServerException("Heap is full");
+            }
         }
     }
+
+    // 如果variableId不存在或clientId不在列表中，不执行任何操作
+    public void deleteData(String variableId, String clientId) {
+        if (variableExistsHeap(variableId)) {
+            List<String> clientIds = heap.get(variableId);
+            boolean removed = clientIds.remove(clientId);
+            if (removed && clientIds.isEmpty()) {
+                heap.remove(variableId);
+                elementNum--;
+            }
+        }
+    }
+
 
     public boolean variableExistsHeap(String variableId){
         return heap.containsKey(variableId);
