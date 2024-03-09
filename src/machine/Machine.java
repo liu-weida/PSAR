@@ -6,7 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public interface Machine {
-    void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException;
+    void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException;
 
     void respond(Message message) throws IllegalAccessException, InvocationTargetException;
 

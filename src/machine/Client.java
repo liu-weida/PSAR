@@ -30,14 +30,23 @@ public class Client implements Machine{
     }
 
     @Override
-    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException {
-        for (Method method: getClass().getDeclaredMethods()){
+    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+        for (Method method : getClass().getDeclaredMethods()) {
             if (methodType.equals(method.getName())) {
-                method.setAccessible(true);
-                method.invoke(args);
+                if (method.getParameterTypes().length == args.size()) {
+                    method.setAccessible(true);
+                    try {
+                        method.invoke(this, args.toArray());
+                        return;
+                    } catch (IllegalArgumentException e) {
+                        throw new InvocationTargetException(e);
+                    }
+                }
             }
         }
+        throw new NoSuchMethodException("Method " + methodType + " with " + args.size() + " parameters not found.");
     }
+
 
     @Override
     public void respond(Message message) {
