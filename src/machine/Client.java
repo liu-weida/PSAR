@@ -30,7 +30,7 @@ public class Client implements Machine{
     }
 
     @Override
-    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, ClassNotFoundException {
         for (Method method : getClass().getDeclaredMethods()) {
             if (methodType.equals(method.getName())) {
                 if (method.getParameterTypes().length == args.size()) {
@@ -44,13 +44,17 @@ public class Client implements Machine{
                 }
             }
         }
+
+        ServerMessage message = (ServerMessage)channel.recv();
+        respond(message);
+
         throw new NoSuchMethodException("Method " + methodType + " with " + args.size() + " parameters not found.");
     }
 
 
     @Override
     public void respond(Message message) {
-
+        //这里放收到服务器消息之后的处理
     }
 
     //

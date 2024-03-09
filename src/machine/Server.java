@@ -1,7 +1,10 @@
 package machine;
 
+import utils.channel.Channel;
+import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
 import utils.message.Message;
+import utils.message.ServerMessage;
 import utils.processor.ServerProcessor;
 
 import java.io.IOException;
@@ -16,6 +19,7 @@ public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
+    private Channel channel;
     private HashMap<String, LinkedList<String>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
     private final int heapMaxSize = 10;
     private int elementNum = 0;
@@ -98,13 +102,19 @@ public class Server implements Machine{
             int i = 0;
             while (! Thread.currentThread().isInterrupted()) {
                 try (Socket client = ss.accept()) {
+                    channel = new ChannelBasic(client);
                     System.out.println("Debut de requête " + i);
                     //respond(processor.process(client));
-                    processor.process(client);
+
+                    Message message = processor.process(client);
+                    respond(message);
+
                 }
                 System.out.println("Fin de requête " + i);
                 System.out.println("**********************\n");
                 i++;
+
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -122,7 +132,7 @@ public class Server implements Machine{
     }
 
     @Override
-    public void respond(Message message) {
-
+    public void respond(Message message) throws IOException {
+        channel.send(message);
     }
 }
