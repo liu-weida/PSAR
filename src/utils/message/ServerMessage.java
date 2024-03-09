@@ -7,6 +7,7 @@ public class ServerMessage implements Message, Serializable {
     private String messageType;
     private boolean successes;
     private final String message;
+    private int infoClient;
 
     public ServerMessage(String messageType, boolean successes, String message){
         this.messageType = messageType;
