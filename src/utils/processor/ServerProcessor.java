@@ -36,30 +36,56 @@ public class ServerProcessor implements Processor{
             switch (clientMessage.getCommand()){
                 case "dMalloc":
                     System.out.println("收到初始化数据信息");
-                    //si已经存在这个数据，返回错误
-
-                    //sinon
-                    server.modifyHeap(clientId, varibaleId);
+                    //如果已经存在此数据
+                    //回复客户端传输错误信息
+                    try{
+                        server.insertData(clientId, varibaleId);
+                    }catch (serverException){//满了加不进去
+                        //回复客户端传输错信息
+                        break;
+                    }
+                    //回复客户端传输顺利信息
                     break;
                 case "dAccessWrite":
                     System.out.println("收到写入请求");
-                    //si服务器没有记录此数据或客户端信息，记录进heap
-                    server.modifyHeap(clientId, varibaleId);
-                    //如果数据上锁则等待信号
-                    //如果数据未上锁则上锁并返回servermessage信息并等待客户端回信
+                    //如果不存在此数据
+                    //回复客户端错误信息
+                    //数据锁
+                    try{
+                        server.insertData(clientId, varibaleId);
+                    }catch(serverException){
+                        //回复客户端错误信息
+                        break;
+                    }
+                    //如果数据未上锁则上锁并返回顺利信息并等待客户端dRelease信息
+                    //根据信息处理...
                     break;
                 case "dAccessRead":
                     System.out.println("收到客户端阅读请求");
+                    //如果不存在此数据
+                    //回复客户端错误信息
+                    //数据锁
+                    try{
+                        server.insertData(clientId, varibaleId);
+                    }catch(serverException){
+                        //回复客户端错误信息
+                        break;
+                    }
+                    //如果数据未上锁则上锁并返回顺利信息并等待客户端dRelease信息
+                    //根据信息处理...
                     break;
                 case "dRelease":
                     System.out.println("数据使用完毕信息");
-                    //如果数据上锁
-                    //给数据解锁
+                    //回复错误信息
                     break;
                 case "dFree":
                     System.out.println("收到客户端删除数据请求");
-                    //如果没有此数据，回复报错信息
-                    //如果存在，通知所有拥有数据的客户，收到所有回复后从heap中删除
+                    if(!server.variableExistsHeap(varibaleId)){
+                        //回复报错信息
+                    }else{//如果存在
+                        //数据锁
+                        server.deleteData(varibaleId,clientId);
+                    }
                     break;
                 default:
                     // no such method
