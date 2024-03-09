@@ -11,10 +11,10 @@ import utils.message.ServerMessage;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.HashMap;
+import java.util.Objects;
 
 public class ServerProcessor implements Processor{
-    private Server server;
+    private final Server server;
 
     public ServerProcessor(Server server){
         this.server = server;
@@ -35,24 +35,15 @@ public class ServerProcessor implements Processor{
 
             try {
                 switch (clientMessage.getCommand()) {
-                    case "dMalloc":
-                        handleDMalloc(variableId, clientId, channel);
-                        break;
-                    case "dAccessWrite":
-                        handleDAccessWrite(variableId,clientId,channel);
-                        break;
-                    case "dAccessRead":
-                        handleDAccessRead(variableId,clientId,channel);
-                        break;
-                    case "dRelease":
-                        handleDRelease(channel);
-                        break;
-                    case "dFree":
-                        handleDFree(variableId, clientId, channel);
-                        break;
-                    default:
-                        ServerMessage message = new ServerMessage("respond",false,"Commande error");
+                    case "dMalloc" -> handleDMalloc(variableId, clientId, channel);
+                    case "dAccessWrite" -> handleDAccessWrite(variableId, clientId, channel);
+                    case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel);
+                    case "dRelease" -> handleDRelease(channel);
+                    case "dFree" -> handleDFree(variableId, channel);
+                    default -> {
+                        ServerMessage message = new ServerMessage("respond", false, "Commande error");
                         channel.send(message);
+                    }
                 }
             }catch(IOException e){
                 //传输错误
@@ -102,7 +93,7 @@ public class ServerProcessor implements Processor{
         message = new ServerMessage("respondDAccessWrite",true,"dAccessWrite waiting for dRelease");
         channel.send(message);
         ClientMessage clientMessageWrite= (ClientMessage)channel.recv();
-        if(clientMessageWrite.getCommand() != "dRelease"){
+        if(!Objects.equals(clientMessageWrite.getCommand(), "dRelease")){
             message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(command error)");
             channel.send(message);
             //解锁下一个notifyone
@@ -135,7 +126,7 @@ public class ServerProcessor implements Processor{
         message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease");
         channel.send(message);
         ClientMessage clientMessageRead = (ClientMessage) channel.recv();
-        if (clientMessageRead.getCommand() != "dRelease") {
+        if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
             message = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(command error)");
             channel.send(message);
             //解锁下一个notifyone
@@ -159,7 +150,7 @@ public class ServerProcessor implements Processor{
         message = new ServerMessage("respondDRelease", false, "command error");
         channel.send(message);
     }
-    private void handleDFree(String variableId, String clientId, Channel channel) throws IOException {
+    private void handleDFree(String variableId, Channel channel) throws IOException {
         System.out.println("收到客户端删除数据请求");
         ServerMessage message = null;
         //数据锁
