@@ -34,14 +34,14 @@ public class ServerProcessor implements Processor{
             String variableId = clientMessage.getVariableId();
 
             int clientPort = channel.getRemotePort();
-            InetAddress clienthost = channel.getRemoteHost();
+            InetAddress clientHost = channel.getRemoteHost();
             // Class<?> clazz = clientMessage.getClazz();
 
             try {
                 switch (clientMessage.getCommand()) {
                     case "dMalloc" -> handleDMalloc(variableId, clientId, channel);
                     case "dAccessWrite" -> handleDAccessWrite(variableId, clientId, channel);
-                    case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel);
+                    case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel,clientPort,clientHost);
                     case "dRelease" -> handleDRelease(channel);
                     case "dFree" -> handleDFree(variableId, channel);
                     default -> {
@@ -108,7 +108,7 @@ public class ServerProcessor implements Processor{
             lock.writeLock().unlock();
         }
     }
-    private void handleDAccessRead(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
+    private void handleDAccessRead(String variableId, String clientId, Channel channel,int clientPort,InetAddress clientHost) throws IOException, ClassNotFoundException {
         System.out.println("收到客户端阅读请求");
         //数据锁
         lock.readLock().lock();
@@ -118,7 +118,7 @@ public class ServerProcessor implements Processor{
             //解锁下一个notifyone
             return;
         }
-        ServerMessage message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease");
+        ServerMessage message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease",clientPort,clientHost);
         channel.send(message);
         ClientMessage clientMessageRead = (ClientMessage) channel.recv();
         if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
