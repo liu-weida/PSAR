@@ -37,7 +37,7 @@ public class Server implements Machine{
      *
      * @param variableId 要添加到哈希表的variableId。
      * @param clientId 要添加到与variableId关联的LinkedList中的clientId。
-     * @throws serverException 如果哈希表已满。
+     * @throws ServerException 如果哈希表已满。
      */
     public void insertData(String variableId, String clientId) throws ServerException {
         if (variableExistsHeap(variableId)) {
