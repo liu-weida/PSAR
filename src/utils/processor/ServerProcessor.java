@@ -17,11 +17,16 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ServerProcessor implements Processor{
-    private final Server server;
+    private Server server;
     private ServerMessage message;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public ServerProcessor(Server server){
+        this.server = server;
+    }
+    public ServerProcessor(){ this.server = null; }
+
+    public void setServer(Server server){
         this.server = server;
     }
 

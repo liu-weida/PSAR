@@ -21,7 +21,7 @@ public class Server implements Machine{
     private final ServerProcessor processor;
     private Channel channel;
     private HashMap<String, LinkedList<String>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
-    private final int heapMaxSize = 10;
+    private final int clientMaxMunber = 10;
     private int elementNum = 0;
 
 
@@ -30,6 +30,7 @@ public class Server implements Machine{
         this.serverId = id;
         this.processor = processor;
         this.heap = new HashMap<>();
+        processor.setServer(this);
     }
 
 
@@ -47,19 +48,19 @@ public class Server implements Machine{
         if (variableExistsHeap(variableId)) {
             if (!dataExistsHeap(clientId, variableId)) {
                 LinkedList<String> clientIds = heap.get(variableId);
-                clientIds.addFirst(clientId);
+                if(clientIds.size()<clientMaxMunber){
+                    clientIds.addFirst(clientId);
+                }else{
+                    throw new ServerException("too much client in one data");
+                }
             }else {
                 throw new ServerException("data exists");
             }
         } else {
-            if(elementNum < heapMaxSize){
-                LinkedList<String> newList = new LinkedList<>();
-                newList.add(clientId);
-                heap.put(variableId, newList);
-                elementNum++;
-            }else {
-                throw new ServerException("Heap is full");
-            }
+            LinkedList<String> newList = new LinkedList<>();
+            newList.add(clientId);
+            heap.put(variableId, newList);
+            elementNum++;
         }
     }
 
