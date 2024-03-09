@@ -9,13 +9,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
-    private HashMap<String, List<String>> heap;//HashMap<variableId,List<clientId>>
+    private HashMap<String, LinkedList<String>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
     private final int heapMaxSize = 10;
     private int elementNum = 0;
 
@@ -29,15 +30,26 @@ public class Server implements Machine{
 
 
 
-    //如果不存在:插入，如果已经存在:无事发生，如果heap满了:报错
-    public void insertData(String variableId, String clientId) {
+    /**
+     * 向哈希表中插入一个新的clientId和variableId的映射。
+     * 如果映射已经存在，则将clientId添加到LinkedList的头部。
+     * 如果哈希表已满，则抛出异常。
+     *
+     * @param variableId 要添加到哈希表的variableId。
+     * @param clientId 要添加到与variableId关联的LinkedList中的clientId。
+     * @throws serverException 如果哈希表已满。
+     */
+    public void insertData(String variableId, String clientId) throws ServerException {
         if (variableExistsHeap(variableId)) {
             if (!dataExistsHeap(clientId, variableId)) {
-                heap.get(variableId).add(clientId);
+                LinkedList<String> clientIds = heap.get(variableId);
+                clientIds.addFirst(clientId);
+            }else {
+                throw new ServerException("data exists");
             }
         } else {
             if(elementNum < heapMaxSize){
-                List<String> newList = new ArrayList<>();
+                LinkedList<String> newList = new LinkedList<>();
                 newList.add(clientId);
                 heap.put(variableId, newList);
                 elementNum++;
@@ -47,10 +59,11 @@ public class Server implements Machine{
         }
     }
 
+
     // 如果variableId不存在或clientId不在列表中，不执行任何操作
     public void deleteData(String variableId, String clientId) {
         if (variableExistsHeap(variableId)) {
-            List<String> clientIds = heap.get(variableId);
+            LinkedList<String> clientIds = heap.get(variableId);
             boolean removed = clientIds.remove(clientId);
             if (removed && clientIds.isEmpty()) {
                 heap.remove(variableId);
@@ -59,6 +72,11 @@ public class Server implements Machine{
         }
     }
 
+    public void deleteVariable(String variableId){
+        if (heap.containsKey(variableId)) {
+            heap.remove(variableId);
+        }
+    }
 
     public boolean variableExistsHeap(String variableId){
         return heap.containsKey(variableId);
@@ -66,7 +84,7 @@ public class Server implements Machine{
 
     public boolean dataExistsHeap(String clientId, String variableId){
         if (variableExistsHeap(variableId)){
-            List<String> clientIds = heap.get(variableId);
+            LinkedList<String> clientIds = heap.get(variableId);
             return clientIds.contains(clientId);
         }else{
             return false;
