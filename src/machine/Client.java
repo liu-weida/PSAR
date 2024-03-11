@@ -45,6 +45,21 @@ public class Client implements Machine{
         return channel;
     }
 
+    public HashMap<String, Object> getLocalHeap(){
+        return localHeap;
+    }
+
+    public Object getObject(String variableId){
+        return localHeap.get(variableId);
+    }
+
+    public void setObject(String variableId,Object o){
+        localHeap.put(variableId,o);
+    }
+
+    public boolean compareClassObject(String variableId,Class<?> clazz){
+        return getObject(variableId).getClass() == clazz;
+    }
     @Override
     public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
         for (Method method : getClass().getDeclaredMethods()) {
