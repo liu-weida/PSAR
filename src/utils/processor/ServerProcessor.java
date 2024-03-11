@@ -21,19 +21,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class ServerProcessor implements Processor{
     private Server server;
     private ServerMessage message;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    public ServerProcessor(Server server){
-        this.server = server;
+    public ServerProcessor(){
+        this.server = null;
     }
-    public ServerProcessor(){ this.server = null; }
 
     public void setServer(Server server){
         this.server = server;
     }
 
     public Message process(Socket socket){
-
         Channel channel = new ChannelBasic(socket);
         try {
             ClientMessage clientMessage = (ClientMessage)channel.recv();
@@ -74,84 +72,86 @@ public class ServerProcessor implements Processor{
     private void handleDMalloc(String variableId, String clientId, Channel channel) throws IOException {
         System.out.println("收到初始化数据信息");
         if(server.variableExistsHeap(variableId)){
-            message = new ServerMessage(MessageType.DMA,OperationStatus.DATA_EXISTS);
+            message = new ServerMessage(MessageType.DMA, OperationStatus.DATA_EXISTS);
         }else{
             try{
-                server.insertData(clientId, variableId);
+                server.insertData(variableId, clientId);
             }catch(ServerException e){
-                ServerMessage message = new ServerMessage(MessageType.DMA,OperationStatus.INSERT_ERROR);
+                ServerMessage message = new ServerMessage(MessageType.DMA, OperationStatus.INSERT_ERROR);
                 channel.send(message);
                 return;
             }
-            message = new ServerMessage(MessageType.DMA,OperationStatus.SUCCESS);
+            message = new ServerMessage(MessageType.DMA, OperationStatus.SUCCESS);
 
         }
     }
 
     //检查是否有这个数据，如果存在并且未上锁，(如果还没有此客户的信息)尝试在服务器堆中添加数据信息。等待dRelease信息，接收到修改完毕消息后，设置成拥有最新消息客户(将数据放到双向链表头部代表此客户拥有最新数据信息)
-    private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
+    private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException, ServerException {
         System.out.println("收到写入请求");
-        lock.writeLock().lock();
+        // lock.writeLock().lock();
         //数据锁
         if(!server.variableExistsHeap(variableId)){
-            message = new ServerMessage(MessageType.DAW, OperationStatus.DATA_NOT_EXISTS);
+            message = new ServerMessage(MessageType.DAW, OperationStatus.SUCCESS);
             return;
         }
-        ServerMessage message = new ServerMessage(MessageType.DAW,OperationStatus.WAIT_FOR_DRE);
-        channel.send(message);
-        ClientMessage clientMessageWrite= (ClientMessage)channel.recv();
-        if(!Objects.equals(clientMessageWrite.getCommand(), "dRelease")){
-            message = new ServerMessage(MessageType.DAW,OperationStatus.COMMAND_ERROR);
-            //解锁下一个notifyone
-        }else{
-            try{//更新数据到list首位
-                server.deleteData(clientId, variableId);
-                server.insertData(clientId, variableId);
-            }catch(ServerException e){
-                message = new ServerMessage(MessageType.DAW,OperationStatus.INSERT_ERROR);
-                //解锁下一个notifyone
-                return;
-            }
-            message = new ServerMessage(MessageType.DAW,OperationStatus.SUCCESS);
-
-            //解锁下一个notifyone
-            lock.writeLock().unlock();
-        }
+//        server.insertData(variableId, clientId);
+//        message = new ServerMessage(MessageType.DAW,OperationStatus.SUCCESS);
+//        ClientMessage clientMessageWrite= (ClientMessage)channel.recv();
+//        if(!Objects.equals(clientMessageWrite.getCommand(), "dRelease")){
+//            message = new ServerMessage(MessageType.DAW,OperationStatus.COMMAND_ERROR);
+//            //解锁下一个notifyone
+//        }else{
+//            try{//更新数据到list首位
+//                server.deleteData(clientId, variableId);
+//                server.insertData(clientId, variableId);
+//            }catch(ServerException e){
+//                message = new ServerMessage(MessageType.DAW,OperationStatus.INSERT_ERROR);
+//                //解锁下一个notifyone
+//                return;
+//            }
+//            message = new ServerMessage(MessageType.DAW,OperationStatus.SUCCESS);
+//
+//            //解锁下一个notifyone
+//            // lock.writeLock().unlock();
+//        }
+        message = new ServerMessage(MessageType.DAW,OperationStatus.SUCCESS);
     }
 
     //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
     private void handleDAccessRead(String variableId, String clientId, Channel channel,int clientPort,InetAddress clientHost) throws IOException, ClassNotFoundException {
         System.out.println("收到客户端阅读请求");
         //数据锁
-        lock.readLock().lock();
+        // lock.readLock().lock();
         if (!server.variableExistsHeap(variableId)) {
             message = new ServerMessage(MessageType.DAR,OperationStatus.DATA_NOT_EXISTS);
 
             //解锁下一个notifyone
             return;
         }
-        ServerMessage message = new ServerMessage(MessageType.DAR,OperationStatus.WAIT_FOR_DRE,clientPort,clientHost);
-        channel.send(message);
-        ClientMessage clientMessageRead = (ClientMessage) channel.recv();
-        if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
-            message = new ServerMessage(MessageType.DAR,OperationStatus.COMMAND_ERROR);
-
-            //解锁下一个notifyone
-        } else {
-            try {
-                server.deleteData(clientId, variableId);
-                server.insertData(clientId, variableId);
-            } catch (ServerException e) {
-                message = new ServerMessage(MessageType.DAR,OperationStatus.INSERT_ERROR);
-
-                //解锁下一个notifyone
-                return;
-            }
-            message = new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS);
-
-            //解锁下一个notifyone
-            lock.readLock().unlock();
-        }
+//        ServerMessage message = new ServerMessage(MessageType.DAR,OperationStatus.WAIT_FOR_DRE,clientPort,clientHost);
+//        channel.send(message);
+//        ClientMessage clientMessageRead = (ClientMessage) channel.recv();
+//        if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
+//            message = new ServerMessage(MessageType.DAR,OperationStatus.COMMAND_ERROR);
+//
+//            //解锁下一个notifyone
+//        } else {
+//            try {
+//                server.deleteData(clientId, variableId);
+//                server.insertData(clientId, variableId);
+//            } catch (ServerException e) {
+//                message = new ServerMessage(MessageType.DAR,OperationStatus.INSERT_ERROR);
+//
+//                //解锁下一个notifyone
+//                return;
+//            }
+//            message = new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS);
+//
+//            //解锁下一个notifyone
+//            // lock.readLock().unlock();
+//        }
+        message = new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS, clientPort, channel.getRemoteHost());
     }
 
     //在这里收到Drelease是错误的，直接报错

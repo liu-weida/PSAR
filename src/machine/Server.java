@@ -24,7 +24,6 @@ public class Server implements Machine{
     private final int clientMaxMunber = 10;
     private int elementNum = 0;
 
-
     public Server(int port, String id, ServerProcessor processor){
         this.port = port;
         this.serverId = id;
@@ -106,16 +105,15 @@ public class Server implements Machine{
                     channel = new ChannelBasic(client);
                     System.out.println("Debut de requête " + i);
                     //respond(processor.process(client));
-
                     Message message = processor.process(client);
-                    respond(message);
-
+                    System.out.println(message.toString());
+                    System.out.println();
+                    System.out.println(heap);
+                    channel.send(message);
                 }
                 System.out.println("Fin de requête " + i);
                 System.out.println("**********************\n");
                 i++;
-
-
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -137,7 +135,7 @@ public class Server implements Machine{
     }
 
     @Override
-    public void respond(Message message) throws IOException {
-        channel.send(message);
+    public void respond() throws IOException {
+        // channel.send(message);
     }
 }

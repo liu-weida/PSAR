@@ -6,6 +6,7 @@ import utils.message.ClientMessage;
 import utils.channel.Channel;
 import utils.message.Message;
 import utils.message.ServerMessage;
+import utils.processor.ClientProcessor;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -21,16 +22,16 @@ public class Client implements Machine{
     private Channel channel;
     private HashMap<String, Object> localHeap;//数据储存在这里
 
-    ServerSocket serverSocket;
+    // ServerSocket serverSocket;
     public Client(int port, String clientId, Channel channel) {
         this.port = port;
         this.clientId = clientId;
         this.channel = channel;
-        try{
-            this.serverSocket = new ServerSocket(port);
-        }catch (IOException e){
-            e.printStackTrace();
-        }
+//        try{
+//            this.serverSocket = new ServerSocket(port);
+//        }catch (IOException e){
+//            e.printStackTrace();
+//        }
         init_data();
     }
 
@@ -61,7 +62,7 @@ public class Client implements Machine{
         return getObject(variableId).getClass() == clazz;
     }
     @Override
-    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+    public void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException {
         for (Method method : getClass().getDeclaredMethods()) {
             // 检查方法是否有@CommandMethod注解
             if (method.isAnnotationPresent(CommandMethod.class)) {
@@ -82,59 +83,61 @@ public class Client implements Machine{
     }
 
     @Override
-    public void respond(Message message) {
+    public void respond() throws IOException, ClassNotFoundException {
         //这里放收到服务器消息之后的处理
+        ClientProcessor clientProcessor = new ClientProcessor();
+        clientProcessor.process(channel.getSocket());
     }
 
-
-    public void connectToClient(String host, int port,String variableId) {
-        try {
-            // 创建一个新的Socket连接到指定的主机和端口
-            Socket socket = new Socket(host, port);
-            Channel channel = new ChannelBasic(socket);
-
-            // 发送消息
-            ClientMessage SendMessage = new ClientMessage("wantValue", getId(), variableId);
-            channel.send(SendMessage);
-
-            // 接收响应
-            ServerMessage receivedMessage = (ServerMessage) channel.recv();
-            // 处理接收到的消息...
-
-            // 关闭连接
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void listenForClientMessages() {
-                new Thread(() -> {
-                    try {
-                            while (true) {
-                                // 接受一个连接
-                                Socket clientSocket = serverSocket.accept();
-
-                                Channel channelClients = new ChannelBasic(clientSocket);
-
-                                try{
-                                    ClientMessage receivedMessage = (ClientMessage) channelClients.recv();
-                                }catch (ClassNotFoundException e){
-                                    e.printStackTrace();
-                                }
-
-                                // 处理接收到的消息...
-
-                                // 关闭这个连接
-                                clientSocket.close();
-                            }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-    }
+//
+//    public void connectToClient(String host, int port,String variableId) {
+//        try {
+//            // 创建一个新的Socket连接到指定的主机和端口
+//            Socket socket = new Socket(host, port);
+//            Channel channel = new ChannelBasic(socket);
+//
+//            // 发送消息
+//            ClientMessage SendMessage = new ClientMessage("wantValue", getId(), variableId);
+//            channel.send(SendMessage);
+//
+//            // 接收响应
+//            ServerMessage receivedMessage = (ServerMessage) channel.recv();
+//            // 处理接收到的消息...
+//
+//            // 关闭连接
+//            socket.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (ClassNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+//
+//    public void listenForClientMessages() {
+//                new Thread(() -> {
+//                    try {
+//                            while (true) {
+//                                // 接受一个连接
+//                                Socket clientSocket = serverSocket.accept();
+//
+//                                Channel channelClients = new ChannelBasic(clientSocket);
+//
+//                                try{
+//                                    ClientMessage receivedMessage = (ClientMessage) channelClients.recv();
+//                                }catch (ClassNotFoundException e){
+//                                    e.printStackTrace();
+//                                }
+//
+//                                // 处理接收到的消息...
+//
+//                                // 关闭这个连接
+//                                clientSocket.close();
+//                            }
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }).start();
+//    }
 
     //向服务器发送消息，查看该数据是否存在，如果收到不存在消息，在自己的堆里加入这个数据
     @CommandMethod
@@ -148,13 +151,17 @@ public class Client implements Machine{
     private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id);
         channel.send(message);
-        ServerMessage serverMessage = (ServerMessage) channel.recv();
-        if (serverMessage.getSuccesses()){
-            System.out.println("ok");
-        } else {
-            System.out.println("not ok");
-        }
+//        ServerMessage serverMessage = (ServerMessage) channel.recv();
+//        if (serverMessage.getSuccesses()){
+//            System.out.println("ok");
+//        } else {
+//            System.out.println("not ok");
+//        }
         return 1;
+    }
+
+    public void setChannel(Channel channel){
+        this.channel = channel;
     }
 
     //向服务器发送读取请求，(如果存在这个数据并且数据未上锁)收到确认消息，根据返回的信息判断是否直接读取自己的数据，或向另一个客户端传输读取请求，如果读取出错，向服务器发送错误消息，读取成功修改自己的堆返回地址
@@ -162,12 +169,12 @@ public class Client implements Machine{
     private int dAccessRead(String variableId) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), variableId);
         channel.send(message);
-        ServerMessage serverMessage = (ServerMessage) channel.recv();
-        if(serverMessage.getSuccesses()){
-            System.out.println("ok");
-        } else {
-            System.out.println("not ok");
-        }
+//        ServerMessage serverMessage = (ServerMessage) channel.recv();
+//        if(serverMessage.getSuccesses()){
+//            System.out.println("ok");
+//        } else {
+//            System.out.println("not ok");
+//        }
         return 1;
     }
 

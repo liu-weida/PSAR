@@ -9,7 +9,7 @@ import java.util.List;
 public interface Machine {
     void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, ClassNotFoundException;
 
-    void respond(Message message) throws IllegalAccessException, InvocationTargetException, IOException;
+    void respond() throws IllegalAccessException, InvocationTargetException, IOException, ClassNotFoundException;
 
 
 }

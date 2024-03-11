@@ -60,4 +60,12 @@ public class ServerMessage implements Message, Serializable {
     public int getClientPort() { return clientPort; }
 
     public InetAddress getClientHost() { return clientHost; }
+
+    public String toString() {
+        return "Message Type :" + getMessageType() + "\n" +
+                "State :" + getSuccesses() + "\n" +
+                "Message :" + getMessage() + "\n" +
+                "Client Port :" + getClientPort() + "\n" +
+                "Client Host :" + getClientHost();
+    }
 }
