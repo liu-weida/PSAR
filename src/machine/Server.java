@@ -127,6 +127,10 @@ public class Server implements Machine{
         return port;
     }
 
+    public HashMap<String, LinkedList<String>> getHeap(){
+        return heap;
+    }
+
     @Override
     public void request(String methodType, List<Object> args) {
 

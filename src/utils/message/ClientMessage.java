@@ -6,6 +6,7 @@ public class ClientMessage implements Message, Serializable {
     private final String command;
     private String clientId = null;
     private String variableId = null;
+    private Object obj = null;
 
     public ClientMessage(String command, String clientId, String variableId) {  //for dMalloc,dAccessWrite,
                                                                                         // dAccessRead,dFree
@@ -30,4 +31,6 @@ public class ClientMessage implements Message, Serializable {
     public String getVariableId() {
         return variableId;
     }
+
+    public Object getObj(){ return obj; }
 }
