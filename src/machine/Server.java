@@ -4,13 +4,11 @@ import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
 import utils.message.Message;
-import utils.message.ServerMessage;
 import utils.processor.ServerProcessor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,8 +29,6 @@ public class Server implements Machine{
         this.heap = new HashMap<>();
         processor.setServer(this);
     }
-
-
 
     /**
      * 向哈希表中插入一个新的clientId和variableId的映射。
@@ -96,19 +92,18 @@ public class Server implements Machine{
         }
     }
 
-    public void start(){
+    public void start() throws ServerException, ClassNotFoundException {
         try (ServerSocket ss = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
             int i = 0;
             while (! Thread.currentThread().isInterrupted()) {
-                try (Socket client = ss.accept()) {
-                    channel = new ChannelBasic(client);
+                try (Socket s = ss.accept()) {
+                    Channel channel = new ChannelBasic(s);
                     System.out.println("Debut de requête " + i);
-                    //respond(processor.process(client));
-                    Message message = processor.process(client);
-                    System.out.println(message.toString());
-                    System.out.println();
+                    Message message = processor.process(channel);
+
                     System.out.println(heap);
+
                     channel.send(message);
                 }
                 System.out.println("Fin de requête " + i);
@@ -130,7 +125,7 @@ public class Server implements Machine{
     }
 
     @Override
-    public void request(String methodType, List<Object> args) {
+    public void request(String methodType, String args) {
 
     }
 

@@ -1,7 +1,6 @@
 package test;
 
 import machine.Client;
-import machine.Server;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 

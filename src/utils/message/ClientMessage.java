@@ -6,16 +6,19 @@ public class ClientMessage implements Message, Serializable {
     private final String command;
     private String clientId = null;
     private String variableId = null;
+    private final int clientPort;
 
-    public ClientMessage(String command, String clientId, String variableId) {  //for dMalloc,dAccessWrite, // dAccessRead,dFree
+    public ClientMessage(String command, String clientId, String variableId, int clientPort) {  //for dMalloc,dAccessWrite, // dAccessRead,dFree
         this.command = command;
         this.clientId = clientId;
         this.variableId = variableId;
+        this.clientPort = clientPort;
     }
 
-    public ClientMessage(String command, String variableId) {  // pour dRelease
+    public ClientMessage(String command, String variableId, int clientPort) {  // pour dRelease
         this.command = command;
         this.variableId = variableId;
+        this.clientPort = clientPort;
     }
 
     public String getCommand() {
@@ -30,9 +33,14 @@ public class ClientMessage implements Message, Serializable {
         return variableId;
     }
 
+    public int getClientPort() {
+        return  clientPort;
+    }
+
     public String toString() {
         return "Command :" + getCommand() + "\n" +
                 "Client id :" + getClientId() + "\n" +
-                "Var id :" + getVariableId();
+                "Var id :" + getVariableId() + "\n" +
+                "Client port :" + getClientId();
     }
 }

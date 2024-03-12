@@ -4,7 +4,6 @@ import machine.Server;
 import utils.exception.ServerException;
 import utils.message.ClientMessage;
 import utils.channel.Channel;
-import utils.channel.ChannelBasic;
 import utils.message.Message;
 import utils.message.ServerMessage;
 import utils.message.MessageType;
@@ -12,11 +11,6 @@ import utils.message.OperationStatus;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.Socket;
-import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ServerProcessor implements Processor{
     private Server server;
@@ -31,39 +25,28 @@ public class ServerProcessor implements Processor{
         this.server = server;
     }
 
-    public Message process(Socket socket){
-        Channel channel = new ChannelBasic(socket);
+    public Message process(Channel channel) throws ServerException, IOException, ClassNotFoundException {
+        ClientMessage clientMessage = (ClientMessage) channel.recv();
+        String clientId = clientMessage.getClientId();
+        String variableId = clientMessage.getVariableId();
+        int clientPort = clientMessage.getClientPort();
+
+        InetAddress clientHost = channel.getRemoteHost();
+        // Class<?> clazz = clientMessage.getClazz();
         try {
-            ClientMessage clientMessage = (ClientMessage)channel.recv();
-            String clientId = clientMessage.getClientId();
-            String variableId = clientMessage.getVariableId();
-
-            int clientPort = channel.getRemotePort();
-            InetAddress clientHost = channel.getRemoteHost();
-            // Class<?> clazz = clientMessage.getClazz();
-
-            try {
-                switch (clientMessage.getCommand()) {
-                    case "dMalloc" -> handleDMalloc(variableId, clientId, channel);
-                    case "dAccessWrite" -> handleDAccessWrite(variableId, clientId, channel);
-                    case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel,clientPort,clientHost);
-                    case "dRelease" -> handleDRelease(channel);
-                    case "dFree" -> handleDFree(variableId, channel);
-                    default -> {
-                        message = new ServerMessage(MessageType.EXP,OperationStatus.COMMAND_ERROR);
-
-                    }
-                }
-            }catch(IOException e){
+            switch (clientMessage.getCommand()) {
+                case "dMalloc" -> handleDMalloc(variableId, clientId, channel);
+                case "dAccessWrite" -> handleDAccessWrite(variableId, clientId, channel);
+                case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel, clientPort, clientHost);
+                case "dRelease" -> handleDRelease(channel);
+                case "dFree" -> handleDFree(variableId, channel);
+                default -> message = new ServerMessage(MessageType.EXP,OperationStatus.COMMAND_ERROR);
+            }
+        }catch(IOException e){
                 //传输错误
                 //尝试使用镜像
                 throw new ServerException("传输错误",e);
-            }
-
-        } catch (IOException | ClassNotFoundException | ServerException e) {
-            throw new RuntimeException(e);
         }
-
         return message;
 
     }
@@ -87,7 +70,7 @@ public class ServerProcessor implements Processor{
     }
 
     //检查是否有这个数据，如果存在并且未上锁，(如果还没有此客户的信息)尝试在服务器堆中添加数据信息。等待dRelease信息，接收到修改完毕消息后，设置成拥有最新消息客户(将数据放到双向链表头部代表此客户拥有最新数据信息)
-    private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException, ServerException {
+    private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException {
         System.out.println("收到写入请求");
         // lock.writeLock().lock();
         //数据锁
@@ -119,7 +102,7 @@ public class ServerProcessor implements Processor{
     }
 
     //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
-    private void handleDAccessRead(String variableId, String clientId, Channel channel,int clientPort,InetAddress clientHost) throws IOException, ClassNotFoundException {
+    private void handleDAccessRead(String variableId, String clientId, Channel channel,int clientPort,InetAddress clientHost) throws IOException {
         System.out.println("收到客户端阅读请求");
         //数据锁
         // lock.readLock().lock();
@@ -151,7 +134,7 @@ public class ServerProcessor implements Processor{
 //            //解锁下一个notifyone
 //            // lock.readLock().unlock();
 //        }
-        message = new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS, clientPort, channel.getRemoteHost());
+        message = new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS, clientPort, clientHost);
     }
 
     //在这里收到Drelease是错误的，直接报错
