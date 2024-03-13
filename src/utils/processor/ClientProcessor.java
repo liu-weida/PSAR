@@ -22,7 +22,7 @@ public class ClientProcessor implements Processor{
         ServerMessage message = (ServerMessage) channel.recv();
         if (message.getMessageType() == MessageType.DAR){
             client.connectToClient(message.getClientHost(), message.getClientPort(), "compter");
-        } else if ( /*a faire */) {
+        } else if ( false) {
             //
         } else {
             System.out.println(message);
