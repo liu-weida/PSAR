@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SampleTest {
-    public static void main(String[] args) throws IllegalAccessException, InvocationTargetException, IOException, ClassNotFoundException, NoSuchMethodException {
+    /*public static void main(String[] args) throws IllegalAccessException, InvocationTargetException, IOException, ClassNotFoundException, NoSuchMethodException {
         ServerProcessor serverProcessor = new ServerProcessor();
         Server server = new Server(8080, "Server", serverProcessor);
         Channel channel = new ChannelBasic(new Socket("localhost", 8080));
@@ -29,4 +29,6 @@ public class SampleTest {
         // client2.read(
         // Sot(compter)
     }
+
+     */
 }

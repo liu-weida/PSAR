@@ -22,11 +22,11 @@ public class Server implements Machine{
     private final int clientMaxMunber = 10;
     private int elementNum = 0;
 
-    public Server(int port, String id, ServerProcessor processor){
+    public Server(int port, String id){
         this.port = port;
         this.serverId = id;
-        this.processor = processor;
         this.heap = new HashMap<>();
+        this.processor = new ServerProcessor();
         processor.setServer(this);
     }
 

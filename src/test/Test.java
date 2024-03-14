@@ -10,11 +10,11 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClientTest {
-    /*public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
+public class Test {
+   public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
         Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         Client client1 = new Client( 7070,"client1", channel);
-        client1.setObject("compter", 123);
+       /* client1.setObject("compter", 123);
 
         List<Object> req1 = new ArrayList<>();
         req1.add("compter");
@@ -37,7 +37,9 @@ public class ClientTest {
         // client1.setChannel(new ChannelBasic(new Socket("localhost", 6060)));
         Channel c = new ChannelBasic(new Socket("localhost", 6060));
         c.send(1);
+
+
+        */
     }
 
-     */
 }
