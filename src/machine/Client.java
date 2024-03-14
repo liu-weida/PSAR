@@ -66,7 +66,7 @@ public class Client implements Machine{
         return getObject(variableId).getClass() == clazz;
     }
     @Override
-    public void request(String methodType, List<Object> args) throws InvocationTargetException, IllegalAccessException {
+    public void request(String methodType, String args) throws InvocationTargetException, IllegalAccessException {
         for (Method method: getClass().getMethods()){
             if (method.getName().equals(methodType) && method.isAnnotationPresent(CommandMethod.class)){
                 method.invoke(args);
