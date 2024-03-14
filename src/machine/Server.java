@@ -7,6 +7,7 @@ import utils.message.Message;
 import utils.processor.ServerProcessor;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -124,8 +125,9 @@ public class Server implements Machine{
         return heap;
     }
 
+
     @Override
-    public void request(String methodType, String args) {
+    public void request(String methodType, String args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, ClassNotFoundException, InstantiationException {
 
     }
 

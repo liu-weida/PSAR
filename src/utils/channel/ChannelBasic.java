@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 
-//EX1 Q1
+
 public class ChannelBasic implements Channel {
     private final Socket socket;
 
