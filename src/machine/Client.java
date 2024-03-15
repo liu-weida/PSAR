@@ -64,6 +64,11 @@ public class Client implements Machine{
         this.channel = channel;
     }
 
+    public boolean heapHaveData(String variableId){
+        return false;
+        //to do
+    }
+
     public boolean compareClassObject(String variableId,Class<?> clazz){
         return getObject(variableId).getClass() == clazz;
     }

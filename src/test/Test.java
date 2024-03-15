@@ -6,6 +6,7 @@ import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
 
+import javax.swing.text.html.StyleSheet;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
@@ -20,139 +21,195 @@ public class Test {
     Scanner scanner = new Scanner(System.in);
     public void createServer(){
         System.out.println("try to build server");
-        if(!(_server == null)){
-            try{
+        if (_server == null) {
+            try {
                 _server = new Server(8080, "Server");
-                _server.start();
-            } catch (ServerException |ClassNotFoundException e) {
-                System.out.println("fail to create server");
+                new Thread(() -> {
+                    try {
+                        _server.start();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+                System.out.println("Server started successfully on port 8080");
+            } catch (Exception e) {
+                System.out.println("Fail to create server");
+                e.printStackTrace();
             }
-        }else{
-            System.out.println("server already build");
+        } else {
+            System.out.println("Server already built");
         }
     }
     public void createClient(){
-        System.out.println("client port : ");
+        System.out.println("Enter client port: ");
         int port = scanner.nextInt();
-        System.out.println("client ID : ");
+        scanner.nextLine();
+        System.out.println("Enter client ID: ");
         String clientId = scanner.nextLine();
-        for(Client c : _clients){
-            if(c.getPort() == port || c.getId() == clientId){
-                System.out.println("fail to create client : client exists");
+        System.out.println("clientId = " + clientId);
+
+        for (Client c : _clients) {
+            if (c.getPort() == port || c.getId().equals(clientId)) {
+                System.out.println("Fail to create client: client exists");
                 return;
             }
         }
-        try{
-            Client client1 = new Client(port,clientId);
-            _clients.add(client1);
-        }catch(IOException e){
-            System.out.println("fail to create client : IOException");
-            return;
+
+        try {
+            Client client = new Client(port, clientId);
+            _clients.add(client);
+            System.out.println("Client created successfully: port = " + port + ", clientID = " + clientId);
+        } catch (Exception e) {
+            System.out.println("Fail to create client");
+            e.printStackTrace();
         }
-        System.out.println("client create success: port = "+ port + " clientID = "+ clientId);
     }
-    public void testStart(){
+    public void selectClient() {
+        System.out.println("Your clients (total = " + _clients.size() + "): ");
+        for (int i = 0; i < _clients.size(); i++) {
+            System.out.println(i + ": " + _clients.get(i).getId());
+        }
+        System.out.println("Select client by index: ");
+        int index = scanner.nextInt();
+        scanner.nextLine(); // consume newline
+        if (index >= 0 && index < _clients.size()) {
+            testClient(_clients.get(index));
+        } else {
+            System.out.println("Invalid client index.");
+        }
+    }
+    public void testStart() {
         createServer();
-        while(_server!=null){
-            System.out.println("operator insert number");
-            System.out.println("create client : 0");
-            System.out.println("select client : 1");
-            System.out.println("test end : 2");
-            int index = scanner.nextInt();
-            switch (index){
-                case 0:createClient();
+        while (true) {
+            System.out.println("Enter operation number:");
+            System.out.println("1. Create client");
+            System.out.println("2. Select client");
+            System.out.println("3. End test");
+            int operation = scanner.nextInt();
+            scanner.nextLine();
+            switch (operation) {
                 case 1:
-                    System.out.println("your clients (total = " +_clients.size() + " ): ");
-                    for(Client c : _clients){
-                        System.out.println("your clients : " + c.getId());
-                    }
-                    System.out.println("select client : insert clientId");
-                    String clientId = scanner.nextLine();
-                    boolean find = false;
-                    for(Client c : _clients){
-                        if(c.getId() == clientId){
-                            testClient(c);
-                            find = true;
-                            break;
-                        }
-                    }
-                    if(!find){
-                        System.out.println("error insert");
-                    }
+                    createClient();
+                    break;
                 case 2:
-                    //_server.close();
-                    _server = null;
-                    _clients.clear();
+                    selectClient();
+                    break;
+                case 3:
+                    return;
                 default:
-                    System.out.println("error insert");
+                    System.out.println("Invalid operation. Please try again.");
+                    break;
             }
         }
-
     }
-    public void testClient(Client client){
-        while(true){
-            System.out.println("Controlling Client : "+ client.getId());
-            System.out.println("operator insert number");
-            System.out.println("create data(int) : 0");
-            System.out.println("try request : 1");
-            System.out.println("end control client : 2");
-            int index = scanner.nextInt();
-            switch (index){
-                case 0:
-                    System.out.println("insert a int");
+    public void testClient(Client client) {
+        while (true) {
+            System.out.println("Controlling Client: " + client.getId());
+            System.out.println("1. Create data (int)");
+            System.out.println("2. Perform request");
+            System.out.println("3. End control client");
+            System.out.println("Enter option number: ");
+            int option = scanner.nextInt();
+            scanner.nextLine(); // consume newline
 
-                    if (scanner.hasNextInt()) {
+            switch (option) {
                 case 1:
-                case 2:break;
+                    createData(client);
+                    break;
+                case 2:
+                    performRequest(client);
+                    break;
+                case 3:
+                    return;
                 default:
-                    System.out.println("error insert");
+                    System.out.println("Invalid option. Please try again.");
+                    break;
             }
         }
     }
-    public static void sleepForTenSeconds() {
-        try {
-            // 睡眠10秒
-            Thread.sleep(10000); // 10000毫秒 = 10秒
-        } catch (InterruptedException e) {
-            // 当线程的睡眠状态被中断时，会抛出InterruptedException
-            Thread.currentThread().interrupt(); // 保守的中断处理
-            System.out.println("Thread was interrupted, Failed to complete operation");
+    private void createData(Client client) {
+        System.out.println("Enter a name for the data: ");
+        String name = scanner.nextLine();
+        System.out.println("Enter an integer value: ");
+        int value = scanner.nextInt();
+        scanner.nextLine();
+        if (!client.heapHaveData(name)) {
+            client.setObject(name, value);
+            System.out.println("Data creation successful: " + name + " = " + value);
+        } else {
+            System.out.println("Data with the name \"" + name + "\" already exists. Creation aborted.");
         }
     }
-   public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
-        //Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        //Client client1 = new Client( 7070,"client1");
-        //sleepForTenSeconds();
-        int x = 10;
-        client1.setObject("valueX",x);
-        client1.request("dMalloc","valueX");
 
-   /* client1.setObject("compter", 123);
+    private void performRequest(Client client) {
+        System.out.println("Available requests:");
+        System.out.println("1. dMalloc");
+        System.out.println("2. dAccessWrite");
+        System.out.println("3. dAccessRead");
+        System.out.println("4. dRelease");
+        System.out.println("5. dFree");
+        System.out.println("Enter request number: ");
+        int requestOption = scanner.nextInt();
+        scanner.nextLine(); // consume newline
 
-        List<Object> req1 = new ArrayList<>();
-        req1.add("compter");
-        client1.request("dMalloc", req1);
-        client1.respond();
-
-        client1.setChannel(new ChannelBasic(new Socket("localhost", 8080)));
-        client1.request("dAccessWrite", req1);
-        client1.respond();
-
-        Client client2 = new Client(6060,"client2", new ChannelBasic(new Socket("localhost", 8080)));
-        client2.request("dAccessRead", req1);
-        client2.respond();
+        System.out.println("Enter data name for the operation: ");
+        String dataName = scanner.nextLine();
 
         try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            switch(requestOption) {
+                case 1:
+                    if (!client.heapHaveData(dataName)) {
+                        client.request("dMalloc", dataName);
+                        System.out.println("dMalloc request sent for " + dataName);
+                    } else {
+                        System.out.println("Data already exists.");
+                    }
+                    break;
+                case 2:
+                    if (client.heapHaveData(dataName)) {
+                        client.request("dAccessWrite", dataName);
+                        System.out.println("dAccessWrite request sent for " + dataName);
+                    } else {
+                        System.out.println("Data does not exist.");
+                    }
+                    break;
+                case 3:
+                    if (client.heapHaveData(dataName)) {
+                        client.request("dAccessRead", dataName);
+                        System.out.println("dAccessRead request sent for " + dataName);
+                    } else {
+                        System.out.println("Data does not exist.");
+                    }
+                    break;
+                case 4:
+                    if (client.heapHaveData(dataName)) {
+                        client.request("dRelease", dataName);
+                        System.out.println("dRelease request sent for " + dataName);
+                    } else {
+                        System.out.println("Data does not exist.");
+                    }
+                    break;
+                case 5:
+                    if (client.heapHaveData(dataName)) {
+                        client.request("dFree", dataName);
+                        System.out.println("dFree request sent for " + dataName);
+                    } else {
+                        System.out.println("Data does not exist.");
+                    }
+                    break;
+                default:
+                    System.out.println("Invalid request option.");
+            }
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            System.out.println("Failed to perform the requested operation.");
+            e.printStackTrace();
         }
-        // client1.setChannel(new ChannelBasic(new Socket("localhost", 6060)));
-        Channel c = new ChannelBasic(new Socket("localhost", 6060));
-        c.send(1);
+    }
 
 
-        */
+    public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
+       Test test = new Test();
+       test.testStart();
     }
 
 }
