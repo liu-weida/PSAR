@@ -21,25 +21,16 @@ public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
+    ServerSocket ss;
     private Channel channel;
     private HashMap<String, LinkedList<String>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
-    private final int clientMaxMunber = 10;
-    private int elementNum = 0;
 
-    public Server(int port, String id){
+    public Server(int port, String id) {
         this.port = port;
         this.serverId = id;
         this.heap = new HashMap<>();
         this.processor = new ServerProcessor();
         processor.setServer(this);
-    }
-
-
-    public void deleteVariable(String variableId){
-        if (heap.containsKey(variableId)) {
-            heap.remove(variableId);
-            elementNum--;
-        }
     }
 
     public boolean variableExistsHeap(String variableId){
@@ -55,8 +46,9 @@ public class Server implements Machine{
         }
     }
 
-    public void start() throws ServerException, ClassNotFoundException {
-        try (ServerSocket ss = new ServerSocket(port)) {
+    public void start() throws ServerException, ClassNotFoundException, IOException {
+        try {
+            ss = new ServerSocket(port);
             System.out.println("Server started on port " + port);
             int i = 0;
             while (! Thread.currentThread().isInterrupted()) {
@@ -77,9 +69,19 @@ public class Server implements Machine{
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            if (ss != null && !ss.isClosed()) {
+                ss.close();
+            }
         }
     }
 
+    public void close() throws IOException {
+        if (ss != null && !ss.isClosed()) {
+            ss.close();
+        }
+        System.out.println("Server stopped.");
+    }
 
     public int getPort() {
         return port;

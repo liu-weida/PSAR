@@ -10,6 +10,6 @@ import java.lang.reflect.InvocationTargetException;
 public class StartServer {
     public static void main(String[] args) throws ServerException, ClassNotFoundException {
         Server server = new Server(8080, "Server");
-        server.start();
+        //server.start();
     }
 }

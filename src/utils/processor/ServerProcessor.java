@@ -156,7 +156,7 @@ public class ServerProcessor implements Processor{
             message = new ServerMessage(MessageType.DFR,OperationStatus.DATA_NOT_EXISTS);
 
         } else {//如果存在
-            server.deleteVariable(variableId);
+            //server.deleteVariable(variableId);
             message = new ServerMessage(MessageType.DFR,OperationStatus.SUCCESS);
 
             //notifyall

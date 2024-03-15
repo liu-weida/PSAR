@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -46,7 +47,6 @@ public class Test {
         scanner.nextLine();
         System.out.println("Enter client ID: ");
         String clientId = scanner.nextLine();
-        System.out.println("clientId = " + clientId);
 
         for (Client c : _clients) {
             if (c.getPort() == port || c.getId().equals(clientId)) {
@@ -140,8 +140,27 @@ public class Test {
             System.out.println("Data with the name \"" + name + "\" already exists. Creation aborted.");
         }
     }
-
     private void performRequest(Client client) {
+        System.out.println("Available data in the client heap:");
+        HashMap<String, Object> localHeap = client.getLocalHeap(); // 获取Client中的数据堆
+        if (localHeap.isEmpty()) {
+            System.out.println("No data available.");
+        } else {
+            int index = 0;
+            for (String key : localHeap.keySet()) {
+                System.out.println(index++ + ": " + key);
+            }
+        }
+
+        System.out.println("Enter the index of the data name for the operation: ");
+        int dataIndex = scanner.nextInt();
+        scanner.nextLine(); // consume newline
+
+        // Assuming user will enter the correct index and not handling out-of-bounds access here for simplicity
+        String dataName = (String) localHeap.keySet().toArray()[dataIndex];
+
+        System.out.println("Selected data name for operation: " + dataName);
+
         System.out.println("Available requests:");
         System.out.println("1. dMalloc");
         System.out.println("2. dAccessWrite");
@@ -151,9 +170,6 @@ public class Test {
         System.out.println("Enter request number: ");
         int requestOption = scanner.nextInt();
         scanner.nextLine(); // consume newline
-
-        System.out.println("Enter data name for the operation: ");
-        String dataName = scanner.nextLine();
 
         try {
             switch(requestOption) {
@@ -205,7 +221,17 @@ public class Test {
             e.printStackTrace();
         }
     }
-
+    /*private void testStop(){
+        try {
+            if (_server != null) {
+                _server.close(); // 关闭服务器
+            }
+        } catch (IOException e) {
+            System.out.println("Error occurred while stopping the server.");
+            e.printStackTrace();
+        }
+        System.out.println("Test ended.");
+    }*/
 
     public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
        Test test = new Test();
