@@ -1,5 +1,7 @@
 package machine;
 
+import annotations.CommandMethod;
+import annotations.ModifyMethod;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
@@ -8,11 +10,12 @@ import utils.processor.ServerProcessor;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 
 public class Server implements Machine{
     private final int port;
@@ -31,47 +34,6 @@ public class Server implements Machine{
         processor.setServer(this);
     }
 
-    /**
-     * 向哈希表中插入一个新的clientId和variableId的映射。
-     * 如果映射已经存在，则将clientId添加到LinkedList的头部。
-     * 如果哈希表已满，则抛出异常。
-     *
-     * @param variableId 要添加到哈希表的variableId。
-     * @param clientId 要添加到与variableId关联的LinkedList中的clientId。
-     * @throws ServerException 如果哈希表已满。
-     */
-    public void insertData(String variableId, String clientId) throws ServerException {
-        if (variableExistsHeap(variableId)) {
-            if (!dataExistsHeap(clientId, variableId)) {
-                LinkedList<String> clientIds = heap.get(variableId);
-                if(clientIds.size()<clientMaxMunber){
-                    clientIds.addFirst(clientId);
-                }else{
-                    throw new ServerException("too much client in one data");
-                }
-            }else {
-                throw new ServerException("data exists");
-            }
-        } else {
-            LinkedList<String> newList = new LinkedList<>();
-            newList.add(clientId);
-            heap.put(variableId, newList);
-            elementNum++;
-        }
-    }
-
-
-    // 如果variableId不存在或clientId不在列表中，不执行任何操作
-    public void deleteData(String variableId, String clientId) {
-        if (variableExistsHeap(variableId)) {
-            LinkedList<String> clientIds = heap.get(variableId);
-            boolean removed = clientIds.remove(clientId);
-            if (removed && clientIds.isEmpty()) {
-                heap.remove(variableId);
-                elementNum--;
-            }
-        }
-    }
 
     public void deleteVariable(String variableId){
         if (heap.containsKey(variableId)) {
@@ -106,9 +68,11 @@ public class Server implements Machine{
                     System.out.println(heap);
 
                     channel.send(message);
+                }catch (SocketException e){
+                    System.out.println("SocketException");
                 }
                 System.out.println("Fin de requête " + i);
-                System.out.println("**********************\n");
+                System.out.println("**********************************************************************************\n");
                 i++;
             }
         } catch (IOException e) {
@@ -134,5 +98,59 @@ public class Server implements Machine{
     @Override
     public void respond() throws IOException {
         // channel.send(message);
+    }
+
+    @Override
+    public boolean modifyHeap(String methodType, String key, String value){
+        for (Method method: getClass().getMethods()){
+            if (method.getName().equals(methodType) && method.isAnnotationPresent(ModifyMethod.class)){
+                boolean b;
+                try{
+                    b = (boolean)method.invoke(this,key,value);
+                }catch (InvocationTargetException | IllegalAccessException e){
+                    return false;
+                }
+                return b;
+            }
+        }
+        return false;
+    }
+
+    @ModifyMethod
+    public boolean modifyHeapDMalloc(String variableId,String clientId){
+        if (!heap.containsKey(variableId)) {
+            LinkedList<String> newList = new LinkedList<>();
+            newList.add(clientId);
+            heap.put(variableId, newList);
+            return true;
+        }
+        return false;
+    }
+    @ModifyMethod
+    public boolean modifyHeapDAccessWrite(String variableId,String clientId){
+        if(heap.containsKey(variableId)){
+            LinkedList<String> localListW = heap.get(variableId);
+            localListW.clear();
+            localListW.add(clientId);
+            return true;
+        }
+        return false;
+    }
+    @ModifyMethod
+    public boolean modifyHeapDAccessRead(String variableId,String clientId){
+        if(heap.containsKey(variableId)){
+            LinkedList<String> localListR = heap.get(variableId);
+            if(!localListR.contains(clientId))localListR.add(clientId);
+            return true;
+        }
+        return false;
+    }
+    @ModifyMethod
+    public boolean modifyHeapDFree(String variableId,String clientId){
+        if(heap.containsKey(variableId)){
+            heap.remove(variableId);
+            return true;
+        }
+        return false;
     }
 }

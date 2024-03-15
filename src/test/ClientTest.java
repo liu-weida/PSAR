@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientTest {
-    public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException, InterruptedException {
+    /*public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException, InterruptedException {
         Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         Client client1 = new Client( 6060,"client1", channel, new ClientProcessor());
         client1.setObject("compter", 123);
@@ -37,5 +37,5 @@ public class ClientTest {
 //        // client1.setChannel(new ChannelBasic(new Socket("localhost", 6060)));
 //        Channel c = new ChannelBasic(new Socket("localhost", 6060));
 //        c.send(1);
-    }
+    }*/
 }

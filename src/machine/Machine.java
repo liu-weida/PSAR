@@ -11,5 +11,5 @@ public interface Machine {
 
     void respond() throws IllegalAccessException, InvocationTargetException, IOException, ClassNotFoundException;
 
-
+    boolean modifyHeap(String methodType, String key, String value);
 }

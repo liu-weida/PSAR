@@ -25,12 +25,11 @@ public class Client implements Machine{
     private ServerSocket serverSocket;
 
     // ServerSocket serverSocket;
-    public Client(int port, String clientId, Channel channel) throws IOException {
+    public Client(int port, String clientId) throws IOException {
         this.port = port;
         this.clientId = clientId;
-        this.channel = channel;
+        this.channel = new ChannelBasic(new Socket("localhost", 8080));
         serverSocket = new ServerSocket(port);
-        System.out.println("client create success: port = "+ port + " clientID = "+ clientId);
 //        try{
 //            this.serverSocket = new ServerSocket(port);
 //        }catch (IOException e){
@@ -40,6 +39,9 @@ public class Client implements Machine{
 
     public String getId() {
         return clientId;
+    }
+    public int getPort(){
+        return port;
     }
 
     public Channel getChannel() {
@@ -80,6 +82,11 @@ public class Client implements Machine{
         //这里放收到服务器消息之后的处理
         ClientProcessor clientProcessor = new ClientProcessor();
         clientProcessor.process(channel);
+    }
+
+    @Override
+    public boolean modifyHeap(String methodType, String key, String value){
+        return false;
     }
 
 

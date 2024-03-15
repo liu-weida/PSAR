@@ -26,10 +26,14 @@ public class ServerProcessor implements Processor{
     }
 
     public Message process(Channel channel) throws ServerException, IOException, ClassNotFoundException {
+        System.out.println("waiting for message on port : "+ channel.getRemotePort());
         ClientMessage clientMessage = (ClientMessage) channel.recv();
         String clientId = clientMessage.getClientId();
         String variableId = clientMessage.getVariableId();
         int clientPort = clientMessage.getClientPort();
+        System.out.println("message recv from client : "+ clientId);
+        System.out.println("client port : "+ clientPort);
+        System.out.println("variableId: "+ variableId);
 
         InetAddress clientHost = channel.getRemoteHost();
         // Class<?> clazz = clientMessage.getClazz();
@@ -51,14 +55,15 @@ public class ServerProcessor implements Processor{
 
     }
 
-    //收到malloc消息，检查服务器中是否有这个数据，如果没有尝试在服务器堆中添加数据信息，返回成功信息，如果数据信息已经存在或添加数据信息失败，发送错误信息
+    //返回成功信息//如果数据信息已经存在或添加数据信息失败，发送错误信息
     private void handleDMalloc(String variableId, String clientId, Channel channel) throws IOException {
         System.out.println("收到初始化数据信息");
-        if(server.variableExistsHeap(variableId)){
+        //检查服务器中是否有这个数据
+        /*if(server.variableExistsHeap(variableId)){
             message = new ServerMessage(MessageType.DMA, OperationStatus.DATA_EXISTS);
         }else{
-            try{
-                server.insertData(variableId, clientId);
+            try{//尝试在服务器堆中添加数据信息
+                server.modifyHeap(variableId,clientId,0);
             }catch(ServerException e){
                 ServerMessage message = new ServerMessage(MessageType.DMA, OperationStatus.INSERT_ERROR);
                 channel.send(message);
@@ -66,7 +71,7 @@ public class ServerProcessor implements Processor{
             }
             message = new ServerMessage(MessageType.DMA, OperationStatus.SUCCESS);
 
-        }
+        }*/
     }
 
     //检查是否有这个数据，如果存在并且未上锁，(如果还没有此客户的信息)尝试在服务器堆中添加数据信息。等待dRelease信息，接收到修改完毕消息后，设置成拥有最新消息客户(将数据放到双向链表头部代表此客户拥有最新数据信息)
