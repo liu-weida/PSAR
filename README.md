@@ -11,3 +11,7 @@ Les processus peuvent faire les opérations suivantes :
 • Manipulation de la donnée : une fois l’accès autorisé, la donnée peut être lue et modifiée directement en mémoire.<br>
 • Fin de manipulation de la donnée (drelease) ; le processus signale qu’il n’utilise plus la donnée. Toutes les modifications faites sur la donnée sont alors propagées à tous les processus.<br>
 • Destruction de la donnée (dfree) : le processus détruit la donnée dans tous les tas.<br>
+
+
+### check update info through :
+https://docs.google.com/spreadsheets/d/12pzZp1Ouw7IqKV83eWC61hRKy3UQp33Y3Q0T2vx6Lng/edit#gid=1386834576
