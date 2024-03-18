@@ -25,10 +25,10 @@ public class Client implements Machine{
     private ServerSocket serverSocket;
 
     // ServerSocket serverSocket;
-    public Client(int port, String clientId, Channel channel) throws IOException {
+    public Client(int port, String clientId) throws IOException {
         this.port = port;
         this.clientId = clientId;
-        this.channel = channel;
+        // this.channel = new ChannelBasic(new Socket("localhost", 8080));
         serverSocket = new ServerSocket(port);
 //        try{
 //            this.serverSocket = new ServerSocket(port);
@@ -39,6 +39,9 @@ public class Client implements Machine{
 
     public String getId() {
         return clientId;
+    }
+    public int getPort(){
+        return port;
     }
 
     public Channel getChannel() {
@@ -61,14 +64,21 @@ public class Client implements Machine{
         this.channel = channel;
     }
 
+    public boolean heapHaveData(String variableId){
+        return false;
+        //to do
+    }
+
     public boolean compareClassObject(String variableId,Class<?> clazz){
         return getObject(variableId).getClass() == clazz;
     }
     @Override
     public void request(String methodType, String args) throws InvocationTargetException, IllegalAccessException {
-        for (Method method: getClass().getMethods()){
+        for (Method method: getClass().getDeclaredMethods()){
             if (method.getName().equals(methodType) && method.isAnnotationPresent(CommandMethod.class)){
-                method.invoke(args);
+                System.out.println(method.getName());
+                System.out.println(args);
+                method.invoke(this, args);
                 break;
             }
         }
@@ -79,6 +89,11 @@ public class Client implements Machine{
         //这里放收到服务器消息之后的处理
         ClientProcessor clientProcessor = new ClientProcessor();
         clientProcessor.process(channel);
+    }
+
+    @Override
+    public boolean modifyHeap(String methodType, String key, String value){
+        return false;
     }
 
 
@@ -125,6 +140,7 @@ public class Client implements Machine{
     @CommandMethod
     private void dMalloc(String id) throws IOException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
         ClientMessage message = new ClientMessage("dMalloc", getId(), id, port);
+        setChannel(new ChannelBasic(new Socket("localhost", 8080)));
         channel.send(message);
     }
 
@@ -132,6 +148,7 @@ public class Client implements Machine{
     @CommandMethod
     private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, port);
+        setChannel(new ChannelBasic(new Socket("localhost", 8080)));
         channel.send(message);
 //        ServerMessage serverMessage = (ServerMessage) channel.recv();
 //        if (serverMessage.getSuccesses()){
@@ -146,6 +163,7 @@ public class Client implements Machine{
     @CommandMethod
     private int dAccessRead(String variableId) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), variableId, port);
+        setChannel(new ChannelBasic(new Socket("localhost", 8080)));
         channel.send(message);
 //        ServerMessage serverMessage = (ServerMessage) channel.recv();
 //        if(serverMessage.getSuccesses()){
@@ -160,6 +178,7 @@ public class Client implements Machine{
     @CommandMethod
     private void dRelease(String variableId) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dRelease", variableId, port);
+        setChannel(new ChannelBasic(new Socket("localhost", 8080)));
         channel.send(message);
         ServerMessage serverMessage = (ServerMessage) channel.recv();
     }
@@ -168,6 +187,7 @@ public class Client implements Machine{
     @CommandMethod
     private void dFree(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dFree",getId(), id, port);
+        setChannel(new ChannelBasic(new Socket("localhost", 8080)));
         channel.send(message);
         ServerMessage serverMessage = (ServerMessage) channel.recv();
     }

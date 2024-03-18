@@ -8,10 +8,8 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 public class StartServer {
-    public static void main(String[] args) throws ServerException, ClassNotFoundException {
-        ServerProcessor serverProcessor = new ServerProcessor();
-        Server server = new Server(8080, "Server", serverProcessor);
-        serverProcessor.setServer(server);
+    public static void main(String[] args) throws ServerException, ClassNotFoundException, IOException {
+        Server server = new Server(8080, "Server");
         server.start();
     }
 }
