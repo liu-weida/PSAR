@@ -1,9 +1,6 @@
 package test;
 
 import machine.Client;
-import machine.Server;
-
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,31 +8,8 @@ import java.util.Scanner;
 
 
 public class Test {
-//    private Server _server;
     private ArrayList<Client> _clients = new ArrayList<Client>();
     Scanner scanner = new Scanner(System.in);
-
-//    public void createServer(){
-//        System.out.println("try to build server");
-//        if (_server == null) {
-//            try {
-//                _server = new Server(8080, "Server");
-//                new Thread(() -> {
-//                    try {
-//                        _server.start();
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                }).start();
-//                System.out.println("Server started successfully on port 8080");
-//            } catch (Exception e) {
-//                System.out.println("Fail to create server");
-//                e.printStackTrace();
-//            }
-//        } else {
-//            System.out.println("Server already built");
-//        }
-//    }
 
     public void createClient(){
         System.out.println("Enter client port: ");
@@ -50,7 +24,6 @@ public class Test {
                 return;
             }
         }
-
         try {
             Client client = new Client(port, clientId);
             _clients.add(client);
@@ -119,12 +92,19 @@ public class Test {
         }
     }
 
+    public void printData(Client client){
+        for (String s: client.getLocalHeap().keySet()){
+            System.out.println(s + " = " + client.getLocalHeap().get(s));
+        }
+    }
+
     public void testClient(Client client) {
         while (true) {
             System.out.println("Controlling Client: " + client.getId());
             System.out.println("1: Create data (int)");
             System.out.println("2: Perform request");
-            System.out.println("3: End control client");
+            System.out.println("3: Print all Data");
+            System.out.println("4: End control client");
             System.out.println("Enter option number: ");
             int option = scanner.nextInt();
             scanner.nextLine(); // consume newline
@@ -137,6 +117,9 @@ public class Test {
                     performRequest(client);
                     break;
                 case 3:
+                    printData(client);
+                    break;
+                case 4:
                     return;
                 default:
                     System.out.println("Invalid option. Please try again.");
@@ -151,7 +134,7 @@ public class Test {
         System.out.println("Enter an integer value: ");
         int value = scanner.nextInt();
         scanner.nextLine();
-        if (!client.heapHaveData(name)) {
+        if (! client.heapHaveData(name)) {
             client.setObject(name, value);
             System.out.println("Data creation successful: " + name + " = " + value);
         } else {

@@ -17,7 +17,7 @@ public class ServerMessage implements Message, Serializable {
         this.message = generateMessage(status); // 根据状态生成消息文本
     }
 
-    public ServerMessage(MessageType messageType, OperationStatus status, int clientPort, InetAddress clientHost) {
+    public ServerMessage(MessageType messageType, OperationStatus status, InetAddress clientHost, int clientPort) {
         this(messageType, status);
         this.clientPort = clientPort;
         this.clientHost = clientHost;

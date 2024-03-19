@@ -5,6 +5,7 @@ import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.message.Message;
 import utils.message.MessageType;
+import utils.message.SendDataMessage;
 import utils.message.ServerMessage;
 
 import java.io.IOException;
@@ -18,14 +19,18 @@ public class ClientProcessor implements Processor{
     }
 
     @Override
-    public Message process(Channel channel) throws IOException, ClassNotFoundException {
+    public Message process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
         ServerMessage message = (ServerMessage) channel.recv();
         if (message.getMessageType() == MessageType.DAR){
-            client.connectToClient(message.getClientHost(), message.getClientPort(), "compter");
+            Channel distanceChannel = client.connectToClient(message.getClientHost(), message.getClientPort());
+            distanceChannel.send(new SendDataMessage(variableId, message.getClientHost(), client.getPort()));
+            SendDataMessage sendDataMessage = (SendDataMessage) distanceChannel.recv();
+            client.modifyHeap(sendDataMessage.getVariableId(), sendDataMessage.getValue());
         } else if ( false) {
             //
         } else {
-            System.out.println(message);
+            System.out.println("\nRecived Message");
+            System.out.println(message + "\n");
         }
         return message;
     }

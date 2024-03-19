@@ -2,6 +2,7 @@ package machine;
 
 import annotations.CommandMethod;
 import annotations.ModifyMethod;
+import utils.Pair;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
@@ -10,20 +11,20 @@ import utils.processor.ServerProcessor;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+
 public class Server implements Machine{
     private final int port;
     private final String serverId;
     private final ServerProcessor processor;
     ServerSocket ss;
-    private Channel channel;
-    private HashMap<String, LinkedList<String>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
+    private HashMap<String, LinkedList<Pair>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
 
     public Server(int port, String id) {
         this.port = port;
@@ -37,16 +38,7 @@ public class Server implements Machine{
         return heap.containsKey(variableId);
     }
 
-    public boolean dataExistsHeap(String clientId, String variableId){
-        if (variableExistsHeap(variableId)){
-            LinkedList<String> clientIds = heap.get(variableId);
-            return clientIds.contains(clientId);
-        }else{
-            return false;
-        }
-    }
-
-    public void start() throws ServerException, ClassNotFoundException, IOException {
+    public void start() throws ClassNotFoundException, IOException {
         try {
             ss = new ServerSocket(port);
             System.out.println("Server started on port " + port);
@@ -55,7 +47,7 @@ public class Server implements Machine{
                 try (Socket s = ss.accept()) {
                     Channel channel = new ChannelBasic(s);
                     System.out.println("Debut de requête " + i);
-                    Message message = processor.process(channel);
+                    Message message = processor.process(channel, " ");
 
                     System.out.println(heap);
 
@@ -76,24 +68,16 @@ public class Server implements Machine{
         }
     }
 
-    public void close() throws IOException {
-        if (ss != null && !ss.isClosed()) {
-            ss.close();
-        }
-        System.out.println("Server stopped.");
-    }
-
     public int getPort() {
         return port;
     }
 
-    public HashMap<String, LinkedList<String>> getHeap(){
+    public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
 
-
     @Override
-    public void request(String methodType, String args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, ClassNotFoundException, InstantiationException {
+    public void request(String methodType, String args) {
 
     }
 
@@ -103,52 +87,40 @@ public class Server implements Machine{
     }
 
     @Override
-    public boolean modifyHeap(String methodType, String key, String value){
-        for (Method method: getClass().getMethods()){
-            if (method.getName().equals(methodType) && method.isAnnotationPresent(ModifyMethod.class)){
-                boolean b;
-                try{
-                    b = (boolean)method.invoke(this,key,value);
-                }catch (InvocationTargetException | IllegalAccessException e){
-                    return false;
-                }
-                return b;
-            }
-        }
+    public boolean modifyHeap(String key, Object value) {
         return false;
     }
 
     @ModifyMethod
-    public boolean modifyHeapDMalloc(String variableId,String clientId){
-        if (!heap.containsKey(variableId)) {
-            LinkedList<String> newList = new LinkedList<>();
-            newList.add(clientId);
+    public boolean modifyHeapDMalloc(String variableId){
+        if (! heap.containsKey(variableId)) {
+            LinkedList<Pair> newList = new LinkedList<>();
             heap.put(variableId, newList);
             return true;
         }
         return false;
     }
+
     @ModifyMethod
-    public boolean modifyHeapDAccessWrite(String variableId,String clientId){
+    public boolean modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
         if(heap.containsKey(variableId)){
-            LinkedList<String> localListW = heap.get(variableId);
+            LinkedList<Pair> localListW = heap.get(variableId);
             localListW.clear();
-            localListW.add(clientId);
+            localListW.add(new Pair(host, port));
             return true;
         }
         return false;
     }
+
     @ModifyMethod
-    public boolean modifyHeapDAccessRead(String variableId,String clientId){
+    public Pair modifyHeapDAccessRead(String variableId){
         if(heap.containsKey(variableId)){
-            LinkedList<String> localListR = heap.get(variableId);
-            if(!localListR.contains(clientId))localListR.add(clientId);
-            return true;
+            return heap.get(variableId).get(0);
         }
-        return false;
+        return null;
     }
     @ModifyMethod
-    public boolean modifyHeapDFree(String variableId,String clientId){
+    public boolean modifyHeapDFree(String variableId){
         if(heap.containsKey(variableId)){
             heap.remove(variableId);
             return true;
