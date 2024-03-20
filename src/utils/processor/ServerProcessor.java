@@ -37,7 +37,6 @@ public class ServerProcessor implements Processor{
         System.out.println("client port : " + clientPort);
         System.out.println("variableId: " + variableId);
 
-        InetAddress clientHost = channel.getRemoteHost();
         switch (clientMessage.getCommand()) {
             case "dMalloc" -> message = handleDMalloc(variableId);
             case "dAccessWrite" -> message = handleDAccessWrite(variableId, channel.getRemoteHost(), clientPort);

@@ -19,18 +19,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 
-public class Server implements Machine{
-    private final int port;
-    private final String serverId;
-    private final ServerProcessor processor;
-    ServerSocket ss;
-    private HashMap<String, LinkedList<Pair>> heap;//HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
+public class Server extends Machine{
+    private final ServerProcessor processor = new ServerProcessor();
+    private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
 
-    public Server(int port, String id) {
-        this.port = port;
-        this.serverId = id;
-        this.heap = new HashMap<>();
-        this.processor = new ServerProcessor();
+    public Server(int port, String id) throws IOException {
+        super(id, port);
         processor.setServer(this);
     }
 
@@ -40,11 +34,10 @@ public class Server implements Machine{
 
     public void start() throws ClassNotFoundException, IOException {
         try {
-            ss = new ServerSocket(port);
-            System.out.println("Server started on port " + port);
+            System.out.println("Server started on port " + super.getPort());
             int i = 0;
             while (! Thread.currentThread().isInterrupted()) {
-                try (Socket s = ss.accept()) {
+                try (Socket s = super.getServerSocket().accept()) {
                     Channel channel = new ChannelBasic(s);
                     System.out.println("Debut de requête " + i);
                     Message message = processor.process(channel, " ");
@@ -62,34 +55,25 @@ public class Server implements Machine{
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
-            if (ss != null && !ss.isClosed()) {
-                ss.close();
+            if (super.getServerSocket() != null && !super.getServerSocket().isClosed()) {
+                super.getServerSocket().close();
             }
         }
     }
 
-    public int getPort() {
-        return port;
-    }
 
     public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
 
-    @Override
     public void request(String methodType, String args) {
 
     }
 
-    @Override
     public void respond() throws IOException {
         // channel.send(message);
     }
 
-    @Override
-    public boolean modifyHeap(String key, Object value) {
-        return false;
-    }
 
     @ModifyMethod
     public boolean modifyHeapDMalloc(String variableId){
@@ -105,8 +89,11 @@ public class Server implements Machine{
     public boolean modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
         if(heap.containsKey(variableId)){
             LinkedList<Pair> localListW = heap.get(variableId);
-            localListW.clear();
-            localListW.add(new Pair(host, port));
+            Pair insertEl = new Pair(host, port);
+            if (localListW.contains(insertEl)) {
+                localListW.remove(insertEl);
+            }
+            localListW.addFirst(insertEl);
             return true;
         }
         return false;
