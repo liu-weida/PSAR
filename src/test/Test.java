@@ -1,46 +1,16 @@
 package test;
 
 import machine.Client;
-import machine.Server;
-import utils.channel.Channel;
-import utils.channel.ChannelBasic;
-import utils.exception.ServerException;
-
-import javax.swing.text.html.StyleSheet;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 
 public class Test {
-    private Server _server;
     private ArrayList<Client> _clients = new ArrayList<Client>();
     Scanner scanner = new Scanner(System.in);
-    public void createServer(){
-        System.out.println("try to build server");
-        if (_server == null) {
-            try {
-                _server = new Server(8080, "Server");
-                new Thread(() -> {
-                    try {
-                        _server.start();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-                System.out.println("Server started successfully on port 8080");
-            } catch (Exception e) {
-                System.out.println("Fail to create server");
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("Server already built");
-        }
-    }
+
     public void createClient(){
         System.out.println("Enter client port: ");
         int port = scanner.nextInt();
@@ -54,7 +24,6 @@ public class Test {
                 return;
             }
         }
-
         try {
             Client client = new Client(port, clientId);
             _clients.add(client);
@@ -64,6 +33,7 @@ public class Test {
             e.printStackTrace();
         }
     }
+
     public void selectClient() {
         System.out.println("Your clients (total = " + _clients.size() + "): ");
         for (int i = 0; i < _clients.size(); i++) {
@@ -78,13 +48,28 @@ public class Test {
             System.out.println("Invalid client index.");
         }
     }
+
+    public void autoCreateClient(){
+        int firstPort = 6060;
+        for (int i = 0; i < 10; i++){
+            try {
+                Client client = new Client(firstPort+i, String.valueOf(i));
+                _clients.add(client);
+                System.out.println("Client created successfully: port = " + firstPort+i + ", clientID = " + i);
+            } catch (Exception e){
+                System.out.println("Fail to create client");
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void testStart() {
-        createServer();
         while (true) {
             System.out.println("Enter operation number:");
-            System.out.println("1. Create client");
-            System.out.println("2. Select client");
-            System.out.println("3. End test");
+            System.out.println("1: Create client");
+            System.out.println("2: Select client");
+            System.out.println("3: Auto Creation");
+            System.out.println("4: End Test");
             int operation = scanner.nextInt();
             scanner.nextLine();
             switch (operation) {
@@ -95,6 +80,10 @@ public class Test {
                     selectClient();
                     break;
                 case 3:
+                    autoCreateClient();
+                    break;
+                case 4:
+                    // testStop();
                     return;
                 default:
                     System.out.println("Invalid operation. Please try again.");
@@ -102,12 +91,20 @@ public class Test {
             }
         }
     }
+
+    public void printData(Client client){
+        for (String s: client.getLocalHeap().keySet()){
+            System.out.println(s + " = " + client.getLocalHeap().get(s));
+        }
+    }
+
     public void testClient(Client client) {
         while (true) {
             System.out.println("Controlling Client: " + client.getId());
-            System.out.println("1. Create data (int)");
-            System.out.println("2. Perform request");
-            System.out.println("3. End control client");
+            System.out.println("1: Create data (int)");
+            System.out.println("2: Perform request");
+            System.out.println("3: Print all Data");
+            System.out.println("4: End control client");
             System.out.println("Enter option number: ");
             int option = scanner.nextInt();
             scanner.nextLine(); // consume newline
@@ -120,6 +117,9 @@ public class Test {
                     performRequest(client);
                     break;
                 case 3:
+                    printData(client);
+                    break;
+                case 4:
                     return;
                 default:
                     System.out.println("Invalid option. Please try again.");
@@ -127,19 +127,21 @@ public class Test {
             }
         }
     }
+
     private void createData(Client client) {
         System.out.println("Enter a name for the data: ");
         String name = scanner.nextLine();
         System.out.println("Enter an integer value: ");
         int value = scanner.nextInt();
         scanner.nextLine();
-        if (!client.heapHaveData(name)) {
+        if (! client.heapHaveData(name)) {
             client.setObject(name, value);
             System.out.println("Data creation successful: " + name + " = " + value);
         } else {
             System.out.println("Data with the name \"" + name + "\" already exists. Creation aborted.");
         }
     }
+
     private void performRequest(Client client) {
         System.out.println("Available data in the client heap:");
         HashMap<String, Object> localHeap = client.getLocalHeap(); // 获取Client中的数据堆
@@ -174,28 +176,29 @@ public class Test {
         try {
             switch(requestOption) {
                 case 1:
-                    if (!client.heapHaveData(dataName)) {
-                        client.request("dMalloc", dataName);
-                        System.out.println("dMalloc request sent for " + dataName);
-                    } else {
-                        System.out.println("Data already exists.");
-                    }
+                    client.request("dMalloc", dataName);
+                    System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
-                    if (client.heapHaveData(dataName)) {
-                        client.request("dAccessWrite", dataName);
-                        System.out.println("dAccessWrite request sent for " + dataName);
-                    } else {
-                        System.out.println("Data does not exist.");
-                    }
+//                    if (client.heapHaveData(dataName)) {
+//                        client.request("dAccessWrite", dataName);
+//                        System.out.println("dAccessWrite request sent for " + dataName);
+//                    } else {
+//                        System.out.println("Data does not exist");
+//                        System.out.println("Please set the object first");
+//                    }
+                    client.request("dAccessWrite", dataName);
+                    System.out.println("dAccessWrite request sent for " + dataName);
                     break;
                 case 3:
-                    if (client.heapHaveData(dataName)) {
-                        client.request("dAccessRead", dataName);
-                        System.out.println("dAccessRead request sent for " + dataName);
-                    } else {
-                        System.out.println("Data does not exist.");
-                    }
+//                    if (client.heapHaveData(dataName)) {
+//                        client.request("dAccessRead", dataName);
+//                        System.out.println("dAccessRead request sent for " + dataName);
+//                    } else {
+//                        System.out.println("Data does not exist.");
+//                    }
+                    client.request("dAccessRead", dataName);
+                    System.out.println("dAccessWrite request sent for " + dataName);
                     break;
                 case 4:
                     if (client.heapHaveData(dataName)) {
@@ -221,21 +224,24 @@ public class Test {
             e.printStackTrace();
         }
     }
-    /*private void testStop(){
-        try {
-            if (_server != null) {
-                _server.close(); // 关闭服务器
-            }
-        } catch (IOException e) {
-            System.out.println("Error occurred while stopping the server.");
-            e.printStackTrace();
-        }
-        System.out.println("Test ended.");
-    }*/
 
-    public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
+//    private void testStop(){
+//        try {
+//            if (_server != null) {
+//                _server.close(); // 关闭服务器
+//            }
+//        } catch (IOException e) {
+//            System.out.println("Error occurred while stopping the server.");
+//            e.printStackTrace();
+//        }
+//        System.out.println("Test ended.");
+//    }
+
+    public static void main(String[] args) {
        Test test = new Test();
        test.testStart();
+       //System.out.println(1);
+       //Thread.currentThread().interrupt();
     }
 
 }
