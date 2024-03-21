@@ -1,156 +1,137 @@
 package utils.processor;
 
 import machine.Server;
+import utils.Pair;
 import utils.exception.ServerException;
-import utils.message.ClientMessage;
+import utils.message.*;
 import utils.channel.Channel;
-import utils.channel.ChannelBasic;
-import utils.message.Message;
-import utils.message.ServerMessage;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.Socket;
-import java.util.Objects;
 
 public class ServerProcessor implements Processor{
-    private final Server server;
+    private Server server;
+    // private ServerMessage message;
+    // private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    public ServerProcessor(Server server){
+    public ServerProcessor(){
+        this.server = null;
+    }
+
+    public void setServer(Server server){
         this.server = server;
     }
 
-    public Message process(Socket socket){
+    public Message process(Channel channel, String id) throws IOException, ClassNotFoundException {
+        Message message;
+        System.out.println("waiting for message on port : "+ channel.getRemotePort());
+        ClientMessage clientMessage = (ClientMessage) channel.recv();
+        String clientId = clientMessage.getClientId();
+        String variableId = clientMessage.getVariableId();
+        int clientPort = clientMessage.getClientPort();
+        System.out.println("message recv from client : " + clientId);
+        System.out.println("client port : " + clientPort);
+        System.out.println("variableId: " + variableId);
 
-        Channel channel = new ChannelBasic(socket);
-        try {
-            ClientMessage clientMessage = (ClientMessage)channel.recv();
-            String clientId = clientMessage.getClientId();
-            String variableId = clientMessage.getVariableId();
+        switch (clientMessage.getCommand()) {
+            case "dMalloc" -> message = handleDMalloc(variableId);
+            case "dAccessWrite" -> message = handleDAccessWrite(variableId, channel.getRemoteHost(), clientPort);
+            case "dAccessRead" -> message = handleDAccessRead(variableId);
+            case "dRelease" -> message = handleDRelease(channel,variableId);
+            case "dFree" -> message = handleDFree(variableId, channel);
+            default -> message = new ServerMessage(MessageType.EXP,OperationStatus.COMMAND_ERROR);
+        }
+        return message;
+    }
 
-            int clientPort = channel.getRemotePort();
-            InetAddress clienthost = channel.getRemoteHost();
-            // Class<?> clazz = clientMessage.getClazz();
+    //返回成功信息//如果数据信息已经存在或添加数据信息失败，发送错误信息
+    private ServerMessage handleDMalloc(String variableId){
+        System.out.println("收到初始化数据信息");
+        //检查服务器中是否有这个数据
+        if(server.variableExistsHeap(variableId)){
+            return new ServerMessage(MessageType.DMA, OperationStatus.DATA_EXISTS);
+        } else {
+            //尝试在服务器堆中添加数据信息
+            server.modifyHeapDMalloc(variableId);
+            return new ServerMessage(MessageType.DMA, OperationStatus.SUCCESS);
+        }
+    }
 
-            try {
-                switch (clientMessage.getCommand()) {
-                    case "dMalloc" -> handleDMalloc(variableId, clientId, channel);
-                    case "dAccessWrite" -> handleDAccessWrite(variableId, clientId, channel);
-                    case "dAccessRead" -> handleDAccessRead(variableId, clientId, channel);
-                    case "dRelease" -> handleDRelease(channel);
-                    case "dFree" -> handleDFree(variableId, channel);
-                    default -> {
-                        ServerMessage message = new ServerMessage("respond", false, "Commande error");
-                        channel.send(message);
-                    }
-                }
-            }catch(IOException e){
-                //传输错误
+    //检查是否有这个数据，如果存在并且未上锁，(如果还没有此客户的信息)尝试在服务器堆中添加数据信息。等待dRelease信息，接收到修改完毕消息后，设置成拥有最新消息客户(将数据放到双向链表头部代表此客户拥有最新数据信息)
+    private ServerMessage handleDAccessWrite(String variableId, InetAddress host, int port) {
+        System.out.println("收到写入请求");
+        if(! server.variableExistsHeap(variableId)){
+            return new ServerMessage(MessageType.DAW, OperationStatus.DATA_NOT_EXISTS);
+        }
+
+        switch (server.modifyHeapDAccessWrite(variableId, host, port)){
+            case OperationStatus.SUCCESS -> {
+                return new ServerMessage(MessageType.DAW, OperationStatus.SUCCESS);
             }
-
-        } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            case OperationStatus.LOCKED -> {
+                return new ServerMessage(MessageType.DAW, OperationStatus.LOCKED);
+            }
         }
 
         return null;
-
     }
 
-    private void handleDMalloc(String variableId, String clientId, Channel channel) throws IOException {
-        System.out.println("收到初始化数据信息");
-        if(server.variableExistsHeap(variableId)){
-            ServerMessage message = new ServerMessage("respondDMalloc",false,"dMalloc fail(data already exists)");
-            channel.send(message);
-        }else{
-            try{
-                server.insertData(clientId, variableId);
-            }catch(ServerException e){
-                ServerMessage message = new ServerMessage("respondDMalloc",false,"dMalloc fail(insert error)");
-                channel.send(message);
-                return;
-            }
-            ServerMessage message = new ServerMessage("respondDMalloc",true,"dMalloc success"); // 确保成功消息在try块内部
-            channel.send(message);
-        }
-    }
-
-    private void handleDAccessWrite(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
-        System.out.println("收到写入请求");
-        //数据锁
-        if(!server.variableExistsHeap(variableId)){
-            ServerMessage message = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(data not exists)");
-            channel.send(message);
-            return;
-        }
-        ServerMessage message = new ServerMessage("respondDAccessWrite",true,"dAccessWrite waiting for dRelease");
-        channel.send(message);
-        ClientMessage clientMessageWrite= (ClientMessage)channel.recv();
-        if(!Objects.equals(clientMessageWrite.getCommand(), "dRelease")){
-            ServerMessage message1 = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(command error)");
-            channel.send(message1);
-            //解锁下一个notifyone
-        }else{
-            try{//更新数据到list首位
-                server.deleteData(clientId, variableId);
-                server.insertData(clientId, variableId);
-            }catch(ServerException e){
-                ServerMessage message1 = new ServerMessage("respondDAccessWrite",false,"dAccessWrite fail(insert error)");
-                channel.send(message1);
-                //解锁下一个notifyone
-                return;
-            }
-            ServerMessage message1 = new ServerMessage("respondDAccessWrite",true,"dAccessWrite success");
-            channel.send(message1);
-            //解锁下一个notifyone
-        }
-    }
-    private void handleDAccessRead(String variableId, String clientId, Channel channel) throws IOException, ClassNotFoundException {
+    //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
+    private Message handleDAccessRead(String variableId) {
         System.out.println("收到客户端阅读请求");
-        //数据锁
         if (!server.variableExistsHeap(variableId)) {
-            ServerMessage message = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(data not exists)");
-            channel.send(message);
-            //解锁下一个notifyone
-            return;
+            return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
         }
-        ServerMessage message = new ServerMessage("respondDAccessRead", true, "dAccessRead waiting for dRelease");
-        channel.send(message);
-        ClientMessage clientMessageRead = (ClientMessage) channel.recv();
-        if (!Objects.equals(clientMessageRead.getCommand(), "dRelease")) {
-            ServerMessage message1 = new ServerMessage("respondDAccessRead", false, "dAccessRead fail(command error)");
-            channel.send(message1);
-            //解锁下一个notifyone
-        } else {
-            try {
-                server.deleteData(clientId, variableId);
-                server.insertData(clientId, variableId);
-            } catch (ServerException e) {
-                ServerMessage message1 = new ServerMessage("respondDAccessRead",false,"dAccessRead fail(insert error)");
-                channel.send(message1);
-                //解锁下一个notifyone
-                return;
+
+        System.out.println(server.modifyHeapDAccessRead(variableId).first().toString() + "aaaa"); //正常
+
+        switch (server.modifyHeapDAccessRead(variableId).first()){
+            case OperationStatus.SUCCESS ->{
+                Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
+                System.out.println(p.first().toString()+"bbb");  //正常
+                System.out.println(p.second().toString()+"ccc");    //正常
+
+                System.out.println(new SendDataMessage((InetAddress) p.first(),(Integer) p.second()).toString()); //正常
+                return new SendDataMessage((InetAddress) p.first(),(Integer) p.second());
             }
-            ServerMessage message1 = new ServerMessage("respondDAccessRead", true, "dAccessRead success");
-            channel.send(message1);
-            //解锁下一个notifyone
+            case OperationStatus.LOCKED -> {
+                return new ServerMessage(MessageType.DAW, OperationStatus.LOCKED);
+            }
+            default ->
+                    throw new IllegalStateException("这句单纯用来凑数，防止ide报错: " + server.modifyHeapDAccessRead(variableId).first());
         }
+
     }
-    private void handleDRelease(Channel channel) throws IOException {
-        System.out.println("数据使用完毕信息");
-        ServerMessage message = new ServerMessage("respondDRelease", false, "command error");
-        channel.send(message);
+
+
+    //在这里收到Drelease是错误的，直接报错
+    private ServerMessage handleDRelease(Channel channel,String variableId) throws IOException {
+        System.out.println("数据使用完毕");
+
+
+        switch (server.modifyHeapDRelease(variableId)){
+            case OperationStatus.SUCCESS -> {
+                return new ServerMessage(MessageType.DRE,OperationStatus.SUCCESS);
+            }
+            case OperationStatus.COMMAND_ERROR -> {
+                return new ServerMessage(MessageType.DRE,OperationStatus.COMMAND_ERROR);
+            }
+        }
+
+        return null;
     }
-    private void handleDFree(String variableId, Channel channel) throws IOException {
+
+    //检查服务器是否有这个数据，如果存在，通知所有存在数据信息的客户删除数据，收到回信后删除这个数据信息
+    private ServerMessage handleDFree(String variableId, Channel channel) throws IOException {
         System.out.println("收到客户端删除数据请求");
         //数据锁
         if (!server.variableExistsHeap(variableId)) {
-            ServerMessage message = new ServerMessage("respondDFree", false, "Dfree fail(data not exists");
-            channel.send(message);
+            return new ServerMessage(MessageType.DFR,OperationStatus.DATA_NOT_EXISTS);
+
         } else {//如果存在
-            server.deleteVariable(variableId);
-            ServerMessage message = new ServerMessage("respondDFree", true, "Dfree success");
-            channel.send(message);
-            //notifyall
+            //server.deleteVariable(variableId);
+            return new ServerMessage(MessageType.DFR,OperationStatus.SUCCESS);
         }
+        // server.modifyHeap("modifyHeapDFree", variableId, clientId);
     }
 }

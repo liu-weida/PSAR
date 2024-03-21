@@ -1,14 +1,44 @@
 package machine;
 
-import utils.message.Message;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
+public class Machine {
+    private final String id;
+    private ServerSocket serverSocket;
+    private final int port;
+    private final InetAddress host = InetAddress.getLocalHost();
+    private int maxSize = 0;
 
-public interface Machine {
-    void request(String methodType, List<Object> args) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException;
+    public Machine(String id, int port) throws IOException {
+        this.id = id;
+        this.port = port;
+        serverSocket = new ServerSocket(port);
+    }
 
-    void respond(Message message) throws IllegalAccessException, InvocationTargetException;
+    public String getId() {
+        return id;
+    }
 
+    public ServerSocket getServerSocket() {
+        return serverSocket;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public InetAddress getHost() {
+        return host;
+    }
+
+    public int getMaxSize() {
+        return maxSize;
+    }
+
+    public void setMaxSize(int maxSize) {
+        this.maxSize = maxSize;
+    }
 
 }
