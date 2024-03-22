@@ -69,18 +69,21 @@ public class Client extends Machine{
     public void listenForClientMessages() {
         new Thread(() -> {
             try {
-                while (! Thread.currentThread().isInterrupted()) {
-                    // 接受一个连接
+                while (!Thread.currentThread().isInterrupted()) {
+
                     Channel localChannel = new ChannelBasic(super.getServerSocket().accept());
                     SendDataMessage recv = (SendDataMessage) localChannel.recv();
 
-                    localChannel.send(new SendDataMessage(recv.getVariableId(), localHeap.get("test")));
+                    Object result = localHeap.get(recv.getVariableId());
+
+                    localChannel.send(new SendDataMessage(recv.getVariableId(), result));
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }).start();
     }
+
 
     //向服务器发送消息，查看该数据是否存在，如果收到不存在消息，在自己的堆里加入这个数据
     @CommandMethod
@@ -118,7 +121,7 @@ public class Client extends Machine{
         ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
         Channel channel = new ChannelBasic(new Socket("localhost",8080));
         channel.send(message);
-        // ServerMessage serverMessage = (ServerMessage) channel.recv();
+
     }
 
     //发出删除信号消息，等待回信
@@ -127,7 +130,6 @@ public class Client extends Machine{
         ClientMessage message = new ClientMessage("dFree",getId(), id, super.getPort());
         Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
-        // ServerMessage serverMessage = (ServerMessage) channel.recv();
     }
 
 }

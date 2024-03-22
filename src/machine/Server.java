@@ -49,7 +49,7 @@ public class Server extends Machine{
                     System.out.println("Debut de requête " + i);
                     Message message = processor.process(channel, " ");
 
-                    System.out.println("服务器堆： " + heap);
+                    System.out.println("heap： " + heap);
 
                     channel.send(message);
                 }catch (SocketException e){
@@ -83,16 +83,13 @@ public class Server extends Machine{
 
 
     @ModifyMethod
-    public boolean modifyHeapDMalloc(String variableId){
-        if (! heap.containsKey(variableId)) {
+    public OperationStatus modifyHeapDMalloc(String variableId){
+
             LinkedList<Pair> newList = new LinkedList<>();
             heap.put(variableId, newList);
+            heapLock.put(variableId,true);  //true -> 未被锁定
+            return OperationStatus.SUCCESS;
 
-            heapLock.put(variableId,true);
-
-            return true;
-        }
-        return false;
     }
 
     @ModifyMethod
@@ -112,8 +109,6 @@ public class Server extends Machine{
                 localListW.remove(insertEl);
             }
             localListW.addFirst(insertEl);
-
-            System.out.println("write一切正常");
 
             return OperationStatus.SUCCESS;
 
@@ -145,11 +140,17 @@ public class Server extends Machine{
     }
 
     @ModifyMethod
-    public boolean modifyHeapDFree(String variableId){
-        if(heap.containsKey(variableId)){
+    public OperationStatus modifyHeapDFree(String variableId){
+
+        if(!heapLock.get(variableId)){
+            return OperationStatus.LOCKED;
+        }else {
             heap.remove(variableId);
-            return true;
+            heapLock.remove(variableId);
+            return OperationStatus.SUCCESS;
         }
-        return false;
+
     }
+
+
 }

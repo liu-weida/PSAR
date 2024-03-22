@@ -20,31 +20,42 @@ public class ClientProcessor implements Processor{
 
     @Override
     public Message process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
-
         Message message = (Message) channel.recv();
 
-        System.out.println(message.toString()+"zzz");  //正常
-
         if (message instanceof SendDataMessage) {
-            System.out.println("message instanceof SendDataMessage 正常？");  //正常
-            System.out.println(((SendDataMessage) message).getHost() + "   host");
-            System.out.println(((SendDataMessage) message).getPort() + "   port");
-            System.out.println(client.getPort() + "   client port");
-            System.out.println(client.getHost() + "  client host");
-            Channel distanceChannel = client.connectToClient(((SendDataMessage) message).getHost(), ((SendDataMessage) message).getPort());
-            distanceChannel.send(new SendDataMessage(variableId, client.getHost(), client.getPort()));
+            SendDataMessage recvMessage = (SendDataMessage) message;
+            Channel distanceChannel = client.connectToClient(recvMessage.getHost(), recvMessage.getPort());
 
-            //自己发自己收！！！！
+            SendDataMessage sendDataMessage = new SendDataMessage(variableId, client.getHost(), client.getPort());
+
+            distanceChannel.send(sendDataMessage);
 
 
-            SendDataMessage sendDataMessage = (SendDataMessage) distanceChannel.recv();
+            SendDataMessage replyMessage = (SendDataMessage) distanceChannel.recv();
 
-            System.out.println(sendDataMessage.toString() + "   sendDataMessage");
-
-            client.modifyHeap(sendDataMessage.getVariableId(), sendDataMessage.getValue());
-
+            client.modifyHeap(sendDataMessage.getVariableId(), replyMessage.getValue());
         }
-//        else {
+
+        return message;
+    }
+
+
+    //自己发自己收！！！！
+
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+
+//            SendDataMessage sendDataMessage1 = (SendDataMessage) distanceChannel.recv();
+//
+//            System.out.println(sendDataMessage.toString() + "   sendDataMessage");
+//
+//            client.modifyHeap(sendDataMessage.getVariableId(), sendDataMessage.getValue());
+//
+//        }
+////        else {
 //
 //            if (message.getMessageType() == MessageType.DAR) {
 //                Channel distanceChannel = client.connectToClient(message.getHost(), message.getPort());
@@ -59,7 +70,7 @@ public class ClientProcessor implements Processor{
 //            }
 //            return message;
 //        }
-        return message;
-    }
+//        return message;
+//    }
 }
 ///
