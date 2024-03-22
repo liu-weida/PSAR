@@ -10,4 +10,4 @@ Les processus peuvent faire les opérations suivantes :
 • Demande un accès en écriture (daccess_write) : le processus demande l’accès exclusif en écriture (et lecture) à une donnée dont il connaît le nom. Si un accès est en cours sur un autre processus l’appel est bloqué.<br>
 • Manipulation de la donnée : une fois l’accès autorisé, la donnée peut être lue et modifiée directement en mémoire.<br>
 • Fin de manipulation de la donnée (drelease) ; le processus signale qu’il n’utilise plus la donnée. Toutes les modifications faites sur la donnée sont alors propagées à tous les processus.<br>
-• Destruction de la donnée (dfree) : le processus détruit la donnée dans tous les tas.<br>
+• Destruction de la donnée (dfree) : le processus détruit la donnée dans tous les tas.<br>   
