@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server extends Machine{
-    private final ServerProcessor processor = new ServerProcessor();
+    final ServerProcessor processor = new ServerProcessor();
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
 
 
@@ -42,31 +42,19 @@ public class Server extends Machine{
     public void start() throws ClassNotFoundException, IOException {
         try {
             System.out.println("Server started on port " + super.getPort());
-            int i = 0;
-            while (! Thread.currentThread().isInterrupted()) {
-                try (Socket s = super.getServerSocket().accept()) {
-                    Channel channel = new ChannelBasic(s);
-                    System.out.println("Debut de requête " + i);
-                    Message message = processor.process(channel, " ");
-
-                    System.out.println("heap： " + heap);
-
-                    channel.send(message);
-                }catch (SocketException e){
-                    System.out.println("SocketException");
-                }
-                System.out.println("Fin de requête " + i);
-                System.out.println("**********************************************************************************\n");
-                i++;
+            while (!Thread.currentThread().isInterrupted()) {
+                Socket clientSocket = super.getServerSocket().accept(); // 接收客户端连接
+                new Thread(new ClientHandler(clientSocket, this)).start(); // 为每个客户端连接创建一个新的线程
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }finally {
+        } catch (SocketException e) {
+            System.out.println("SocketException");
+        } finally {
             if (super.getServerSocket() != null && !super.getServerSocket().isClosed()) {
                 super.getServerSocket().close();
             }
         }
     }
+
 
 
     public HashMap<String, LinkedList<Pair>> getHeap(){

@@ -9,6 +9,9 @@ import utils.channel.Channel;
 import java.io.IOException;
 import java.net.InetAddress;
 
+import static utils.message.OperationStatus.LOCKED;
+import static utils.message.OperationStatus.SUCCESS;
+
 public class ServerProcessor implements Processor {
     private Server server;
     // private ServerMessage message;
@@ -53,7 +56,7 @@ public class ServerProcessor implements Processor {
         } else {
             //尝试在服务器堆中添加数据信息
             server.modifyHeapDMalloc(variableId);
-            return new ServerMessage(MessageType.DMA, OperationStatus.SUCCESS);
+            return new ServerMessage(MessageType.DMA, SUCCESS);
         }
     }
 
@@ -65,11 +68,11 @@ public class ServerProcessor implements Processor {
         }
 
         switch (server.modifyHeapDAccessWrite(variableId, host, port)) {
-            case OperationStatus.SUCCESS -> {
-                return new ServerMessage(MessageType.DAW, OperationStatus.SUCCESS); //没锁
+            case SUCCESS -> {
+                return new ServerMessage(MessageType.DAW, SUCCESS); //没锁
             }
-            case OperationStatus.LOCKED -> {
-                return new ServerMessage(MessageType.DAW, OperationStatus.LOCKED); //锁了
+            case LOCKED -> {
+                return new ServerMessage(MessageType.DAW, LOCKED); //锁了
             }
         }
 
@@ -83,15 +86,14 @@ public class ServerProcessor implements Processor {
             return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
         }
 
-
         switch (server.modifyHeapDAccessRead(variableId).first()) {
-            case OperationStatus.SUCCESS -> {
+            case SUCCESS -> {
                 Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
 
-                return new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS,(InetAddress) p.first(), (Integer) p.second());
+                return new ServerMessage(MessageType.DAR, SUCCESS,(InetAddress) p.first(), (Integer) p.second());
             }
-            case OperationStatus.LOCKED -> {
-                return new ServerMessage(MessageType.DAR, OperationStatus.LOCKED);
+            case LOCKED -> {
+                return new ServerMessage(MessageType.DAR, LOCKED);
             }
             default -> {
                 return new ServerMessage(MessageType.DAR, OperationStatus.ERROR);
@@ -107,10 +109,10 @@ public class ServerProcessor implements Processor {
 
 
         switch (server.modifyHeapDRelease(variableId)) {
-            case OperationStatus.SUCCESS -> {
-                return new ServerMessage(MessageType.DRE, OperationStatus.SUCCESS);
+            case SUCCESS -> {
+                return new ServerMessage(MessageType.DRE, SUCCESS);
             }
-            case OperationStatus.ERROR -> {
+            case ERROR -> {
                 return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
             }
         }
@@ -127,11 +129,11 @@ public class ServerProcessor implements Processor {
         }
 
         switch (server.modifyHeapDFree(variableId)) {
-            case OperationStatus.SUCCESS -> {
-                return new ServerMessage(MessageType.DFR, OperationStatus.SUCCESS);
+            case SUCCESS -> {
+                return new ServerMessage(MessageType.DFR, SUCCESS);
             }
-            case OperationStatus.LOCKED -> {
-                return new ServerMessage(MessageType.DFR, OperationStatus.LOCKED);
+            case LOCKED -> {
+                return new ServerMessage(MessageType.DFR, LOCKED);
             }
         }
 

@@ -36,6 +36,7 @@ public class weida_s_test_2 {
         if (_clients.size() >= 2) { // 确保至少有两个客户端
             autoPerformOperations1(_clients.get(0)); // 对c1执行操作
             autoPerformOperations2(_clients.get(1)); // 对c2执行操作
+            autoPerformOperations2(_clients.get(2)); // 对c2执行操作
         }
 
         // 提供用户进行操作的选项
@@ -92,8 +93,28 @@ public class weida_s_test_2 {
             client.request("dRelease", "c2");
             System.out.println("dRelease request auto-performed for c2.");
 
-            client.request("dAccessRead","c1");
-            System.out.println("c2向c1发送read请求");
+            //client.request("dAccessRead","c1");
+            //System.out.println("c2向c1发送read请求");
+        } catch (Exception e) {
+            System.out.println("Failed to auto-perform operations for " + client.getId());
+            e.printStackTrace();
+        }
+    }
+
+    private void autoPerformOperations3(Client client) {
+        try {
+            // 假设request方法接受操作名称和数据名称
+            client.request("dMalloc", "c2");
+            System.out.println("dMalloc request auto-performed for c2.");
+
+            client.request("dAccessWrite", "c2");
+            System.out.println("dAccessWrite request auto-performed for c2.");
+
+            client.request("dRelease", "c2");
+            System.out.println("dRelease request auto-performed for c2.");
+
+            //client.request("dAccessRead","c1");
+            //System.out.println("c2向c1发送read请求");
         } catch (Exception e) {
             System.out.println("Failed to auto-perform operations for " + client.getId());
             e.printStackTrace();

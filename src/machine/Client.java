@@ -96,12 +96,12 @@ public class Client extends Machine{
 
     //向服务器发送写入请求，(如果存在这个数据并且数据未上锁)收到确认消息，返回自己堆中该数据的地址位置，如果收到报错信息，返回null
     @CommandMethod
-        private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
-            ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
-            Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-            channel.send(message);
-            processor.process(channel, id);
-            return 1;
+    private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
+        ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
+        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+        channel.send(message);
+        processor.process(channel, id);
+        return 1;
     }
 
     //向服务器发送读取请求，(如果存在这个数据并且数据未上锁)收到确认消息，根据返回的信息判断是否直接读取自己的数据，或向另一个客户端传输读取请求，如果读取出错，向服务器发送错误消息，读取成功修改自己的堆返回地址
