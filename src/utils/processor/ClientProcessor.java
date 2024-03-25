@@ -20,11 +20,11 @@ public class ClientProcessor implements Processor{
 
     @Override
     public Message process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
-        Message message = (Message) channel.recv();
+        ServerMessage message = (ServerMessage) channel.recv();
 
-        if (message instanceof SendDataMessage) {
-            SendDataMessage recvMessage = (SendDataMessage) message;
-            Channel distanceChannel = client.connectToClient(recvMessage.getHost(), recvMessage.getPort());
+        if (message.getMessageType() == MessageType.DAR) {
+
+            Channel distanceChannel = client.connectToClient(message.getClientHost(), message.getClientPort());
 
             SendDataMessage sendDataMessage = new SendDataMessage(variableId, client.getHost(), client.getPort());
 

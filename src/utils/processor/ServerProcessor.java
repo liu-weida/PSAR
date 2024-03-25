@@ -88,13 +88,13 @@ public class ServerProcessor implements Processor {
             case OperationStatus.SUCCESS -> {
                 Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
 
-                return new SendDataMessage((InetAddress) p.first(), (Integer) p.second());
+                return new ServerMessage(MessageType.DAR,OperationStatus.SUCCESS,(InetAddress) p.first(), (Integer) p.second());
             }
             case OperationStatus.LOCKED -> {
                 return new ServerMessage(MessageType.DAR, OperationStatus.LOCKED);
             }
             default -> {
-                return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
+                return new ServerMessage(MessageType.DAR, OperationStatus.ERROR);
             }
         }
 
