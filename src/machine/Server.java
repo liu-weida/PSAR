@@ -2,11 +2,14 @@ package machine;
 
 import annotations.CommandMethod;
 import annotations.ModifyMethod;
+import utils.JobBuffer;
 import utils.Pair;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.exception.ServerException;
+import utils.message.ClientMessage;
 import utils.message.Message;
+import utils.message.OperationStatus;
 import utils.processor.ServerProcessor;
 
 import java.io.IOException;
@@ -17,15 +20,22 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server extends Machine{
     private final ServerProcessor processor = new ServerProcessor();
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
+    private JobBuffer buffer = new JobBuffer(processor);
 
-    public Server(int port, String id) throws IOException {
+
+    private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();//用作锁 <varibleId，true/false>
+                                                                                    //false被锁，true未被锁
+
+    public Server(int port, String id) throws IOException, InterruptedException {
         super(id, port);
         processor.setServer(this);
+        buffer.startProcess();
     }
 
     public boolean variableExistsHeap(String variableId){
@@ -40,11 +50,9 @@ public class Server extends Machine{
                 try (Socket s = super.getServerSocket().accept()) {
                     Channel channel = new ChannelBasic(s);
                     System.out.println("Debut de requête " + i);
-                    Message message = processor.process(channel, " ");
-
-                    System.out.println(heap);
-
-                    channel.send(message);
+                    ClientMessage message = (ClientMessage) channel.recv();
+                    buffer.insertData(message.getVariableId(), message);
+                    System.out.println("heap： " + heap);
                 }catch (SocketException e){
                     System.out.println("SocketException");
                 }
@@ -61,57 +69,68 @@ public class Server extends Machine{
         }
     }
 
-
     public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
 
-    public void request(String methodType, String args) {
-
-    }
-
-    public void respond() throws IOException {
-        // channel.send(message);
-    }
-
-
     @ModifyMethod
-    public boolean modifyHeapDMalloc(String variableId){
-        if (! heap.containsKey(variableId)) {
+    public OperationStatus modifyHeapDMalloc(String variableId){
+
             LinkedList<Pair> newList = new LinkedList<>();
             heap.put(variableId, newList);
-            return true;
-        }
-        return false;
+            heapLock.put(variableId,true);  //true -> 未被锁定
+            return OperationStatus.SUCCESS;
+
     }
 
     @ModifyMethod
-    public boolean modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
-        if(heap.containsKey(variableId)){
+    public OperationStatus modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
+            if (heapLock.get(variableId)){    //检测是否被锁
+                heapLock.put(variableId, false);  //如果没被锁则加锁
+                System.out.println("lock锁定！");
+            } else {
+                System.out.println("lock已被锁！");
+                return OperationStatus.LOCKED;
+            }
             LinkedList<Pair> localListW = heap.get(variableId);
             Pair insertEl = new Pair(host, port);
-            if (localListW.contains(insertEl)) {
+            if (localListW.contains(insertEl))
                 localListW.remove(insertEl);
-            }
             localListW.addFirst(insertEl);
-            return true;
-        }
-        return false;
+            return OperationStatus.SUCCESS;
     }
 
     @ModifyMethod
     public Pair modifyHeapDAccessRead(String variableId){
-        if(heap.containsKey(variableId)){
-            return heap.get(variableId).get(0);
+
+        if (heapLock.get(variableId)) {
+            return new Pair(OperationStatus.SUCCESS,heap.get(variableId).get(0));
+        } else {
+            System.out.println("lock已被锁！");
+            return new Pair(OperationStatus.LOCKED,null);
         }
-        return null;
+
     }
+
     @ModifyMethod
-    public boolean modifyHeapDFree(String variableId){
-        if(heap.containsKey(variableId)){
-            heap.remove(variableId);
-            return true;
+    public OperationStatus modifyHeapDRelease(String variableId){
+        System.out.println("已进入modifyHeapDRelease");
+        if(!heapLock.get(variableId)){
+            heapLock.put(variableId,true);
+            System.out.println("lock已解锁！");
+            return OperationStatus.SUCCESS;
         }
-        return false;
+        return OperationStatus.COMMAND_ERROR;
+    }
+
+    @ModifyMethod
+    public OperationStatus modifyHeapDFree(String variableId){
+        if(!heapLock.get(variableId)){
+            return OperationStatus.LOCKED;
+        } else {
+            heap.remove(variableId);
+            heapLock.remove(variableId);
+            return OperationStatus.SUCCESS;
+        }
     }
 }

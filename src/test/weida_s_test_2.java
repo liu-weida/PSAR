@@ -1,61 +1,23 @@
 package test;
 
 import machine.Client;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-
-public class Test {
+public class weida_s_test_2 {
     private ArrayList<Client> _clients = new ArrayList<Client>();
     Scanner scanner = new Scanner(System.in);
 
-    public void createClient(){
-        System.out.println("Enter client port: ");
-        int port = scanner.nextInt();
-        scanner.nextLine();
-        System.out.println("Enter client ID: ");
-        String clientId = scanner.nextLine();
-
-        for (Client c : _clients) {
-            if (c.getPort() == port || c.getId().equals(clientId)) {
-                System.out.println("Fail to create client: client exists");
-                return;
-            }
-        }
-        try {
-            Client client = new Client(port, clientId);
-            _clients.add(client);
-            System.out.println("Client created successfully: port = " + port + ", clientID = " + clientId);
-        } catch (Exception e) {
-            System.out.println("Fail to create client");
-            e.printStackTrace();
-        }
-    }
-
-    public void selectClient() {
-        System.out.println("Your clients (total = " + _clients.size() + "): ");
-        for (int i = 0; i < _clients.size(); i++) {
-            System.out.println(i + ": " + _clients.get(i).getId());
-        }
-        System.out.println("Select client by index: ");
-        int index = scanner.nextInt();
-        scanner.nextLine(); // consume newline
-        if (index >= 0 && index < _clients.size()) {
-            testClient(_clients.get(index));
-        } else {
-            System.out.println("Invalid client index.");
-        }
-    }
-
     public void autoCreateClient(){
         int firstPort = 6060;
-        for (int i = 0; i < 10; i++){
+        for (int i = 1; i <= 10; i++){ // 索引从1开始
             try {
-                Client client = new Client(firstPort+i, String.valueOf(i));
+                Client client = new Client(firstPort + i - 1, String.valueOf(i));
                 _clients.add(client);
-                System.out.println("Client created successfully: port = " + firstPort+i + ", clientID = " + i);
+                //System.out.println("Client created successfully: port = " + (firstPort + i - 1) + ", clientID = " + i);
             } catch (Exception e){
                 System.out.println("Fail to create client");
                 e.printStackTrace();
@@ -64,31 +26,88 @@ public class Test {
     }
 
     public void testStart() {
+        autoCreateClient(); // 自动创建客户端
+        for (int i = 0; i < _clients.size(); i++) {
+            autoCreateDataForClient(_clients.get(i), i + 1); // 为每个客户端自动创建数据
+        }
+        System.out.println("Auto creation and data assignment completed. Auto performing dMalloc, dAccessWrite, and dRelease for c1 and c2.");
+
+        // 对c1和c2执行dMalloc, dAccessWrite, 和 dRelease
+        if (_clients.size() >= 2) { // 确保至少有两个客户端
+            autoPerformOperations1(_clients.get(0)); // 对c1执行操作
+            autoPerformOperations2(_clients.get(1)); // 对c2执行操作
+        }
+
+        // 提供用户进行操作的选项
         while (true) {
             System.out.println("Enter operation number:");
-            System.out.println("1: Create client");
-            System.out.println("2: Select client");
-            System.out.println("3: Auto Creation");
-            System.out.println("4: End Test");
+            System.out.println("1: Perform request");
+            System.out.println("2: End Test");
             int operation = scanner.nextInt();
-            scanner.nextLine();
-            switch (operation) {
-                case 1:
-                    createClient();
-                    break;
-                case 2:
-                    selectClient();
-                    break;
-                case 3:
-                    autoCreateClient();
-                    break;
-                case 4:
-                    // testStop();
-                    return;
-                default:
-                    System.out.println("Invalid operation. Please try again.");
-                    break;
+            scanner.nextLine(); // consume newline
+            if (operation == 1) {
+                System.out.println("Select a client by index for performing requests (index starts from 1):");
+                int index = scanner.nextInt();
+                scanner.nextLine(); // consume newline
+                if (index > 0 && index <= _clients.size()) {
+                    testClient(_clients.get(index - 1)); // 索引调整为从1开始
+                } else {
+                    System.out.println("Invalid client index.");
+                }
+            } else if (operation == 2) {
+                System.out.println("Test ended.");
+                return;
+            } else {
+                System.out.println("Invalid operation. Please try again.");
             }
+        }
+    }
+
+    private void autoPerformOperations1(Client client) {
+        try {
+            // 假设request方法接受操作名称和数据名称
+            client.request("dMalloc", "c1");
+            System.out.println("dMalloc request auto-performed for c1.");
+
+            client.request("dAccessWrite", "c1");
+            System.out.println("dAccessWrite request auto-performed for c1.");
+
+            client.request("dRelease", "c1");
+            System.out.println("dRelease request auto-performed for c1.");
+        } catch (Exception e) {
+            System.out.println("Failed to auto-perform operations for " + client.getId());
+            e.printStackTrace();
+        }
+    }
+
+    private void autoPerformOperations2(Client client) {
+        try {
+            // 假设request方法接受操作名称和数据名称
+            client.request("dMalloc", "c2");
+            System.out.println("dMalloc request auto-performed for c2.");
+
+            client.request("dAccessWrite", "c2");
+            System.out.println("dAccessWrite request auto-performed for c2.");
+
+            client.request("dRelease", "c2");
+            System.out.println("dRelease request auto-performed for c2.");
+
+            client.request("dAccessRead","c1");
+            System.out.println("c2向c1发送read请求");
+        } catch (Exception e) {
+            System.out.println("Failed to auto-perform operations for " + client.getId());
+            e.printStackTrace();
+        }
+    }
+
+    private void autoCreateDataForClient(Client client, int index) {
+        String name = "c" + index;
+        int value = index;
+        if (!client.heapHaveData(name)) {
+            client.setObject(name, value);
+            //System.out.println("Data auto-creation successful for client " + client.getId() + ": " + name + " = " + value);
+        } else {
+            System.out.println("Data with the name \"" + name + "\" already exists in client " + client.getId() + ". Auto-creation aborted.");
         }
     }
 
@@ -148,18 +167,18 @@ public class Test {
         if (localHeap.isEmpty()) {
             System.out.println("No data available.");
         } else {
-            int index = 0;
+            int index = 1; // 索引从1开始
             for (String key : localHeap.keySet()) {
-                System.out.println(index++ + ": " + key);
+                System.out.println(index++ + ": " + key); // 使用从1开始的索引打印
             }
         }
 
-        System.out.println("Enter the index of the data name for the operation: ");
+        System.out.println("Enter the index of the data name for the operation (index starts from 1): ");
         int dataIndex = scanner.nextInt();
         scanner.nextLine(); // consume newline
 
-        // Assuming user will enter the correct index and not handling out-of-bounds access here for simplicity
-        String dataName = (String) localHeap.keySet().toArray()[dataIndex];
+        // 用户输入的是从1开始的索引，所以要将其转换为数组（或集合）的索引（从0开始）
+        String dataName = (String) localHeap.keySet().toArray()[dataIndex - 1];
 
         System.out.println("Selected data name for operation: " + dataName);
 
@@ -197,8 +216,11 @@ public class Test {
 //                    } else {
 //                        System.out.println("Data does not exist.");
 //                    }
-                    client.request("dAccessRead", dataName);
-                    System.out.println("dAccessWrite request sent for " + dataName);
+
+                    String dataName2 = scanner.nextLine();
+
+                    client.request("dAccessRead", dataName2);
+                    System.out.println("dAccessWrite request sent for " + dataName2);
                     break;
                 case 4:
                     if (client.heapHaveData(dataName)) {
@@ -238,10 +260,10 @@ public class Test {
 //    }
 
     public static void main(String[] args) {
-       Test test = new Test();
-       test.testStart();
-       //System.out.println(1);
-       //Thread.currentThread().interrupt();
+        weida_s_test_2 test = new weida_s_test_2();
+        test.testStart();
+        //System.out.println(1);
+        //Thread.currentThread().interrupt();
     }
 
 }
