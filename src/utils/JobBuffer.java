@@ -1,5 +1,6 @@
 package utils;
 
+import utils.channel.Channel;
 import utils.message.Message;
 import utils.processor.Processor;
 import utils.processor.ServerProcessor;
@@ -13,6 +14,7 @@ public class JobBuffer {
     private LinkedList<Message> requestList = new LinkedList<>();
     private ServerProcessor processor;
     private boolean isStopped = false;
+    private Channel channel = null;
 
     public JobBuffer(ServerProcessor processor) {
         this.processor = processor;
@@ -50,13 +52,17 @@ public class JobBuffer {
         return requestList.pop();
     }
 
+    public void setChannel(Channel channel){
+        this.channel = channel;
+    }
+
     public void startProcess() throws InterruptedException, IOException {
         while (! isStopped) {
             if (requestNumMap.isEmpty())
                 wait(3000);
             else {
                 Message message = this.pop();
-                processor.process(message);
+                channel.send(processor.process(message));
             }
         }
     }

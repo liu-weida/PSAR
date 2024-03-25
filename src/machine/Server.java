@@ -52,6 +52,7 @@ public class Server extends Machine{
                     System.out.println("Debut de requête " + i);
                     ClientMessage message = (ClientMessage) channel.recv();
                     buffer.insertData(message.getVariableId(), message);
+                    buffer.setChannel(channel);
                     System.out.println("heap： " + heap);
                 }catch (SocketException e){
                     System.out.println("SocketException");
