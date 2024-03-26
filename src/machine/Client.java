@@ -17,13 +17,17 @@ import java.util.HashMap;
 public class Client extends Machine{
     private HashMap<String, Object> localHeap = new HashMap<>();//数据储存在这里
 
-
     private ClientProcessor processor = new ClientProcessor();
+
+    private Channel channel;
 
     public Client(int port, String clientId) throws IOException {
         super(clientId, port);
+        System.out.println("构造函数开始执行");
+        this.channel = new ChannelBasic(new Socket("localhost", 8080));
         processor.setCLient(this);
         listenForClientMessages();
+        System.out.println("构造函数执行完毕");
     }
 
     public boolean heapHaveData(String variableId){
@@ -71,8 +75,15 @@ public class Client extends Machine{
             try {
                 while (!Thread.currentThread().isInterrupted()) {
 
+                    System.out.println("lfcm已启动");
+
                     Channel localChannel = new ChannelBasic(super.getServerSocket().accept());
+
+                    System.out.println("read开始~");
+
                     SendDataMessage recv = (SendDataMessage) localChannel.recv();
+
+                    System.out.println("lfcm收到的消息：" + recv.toString());
 
                     Object result = localHeap.get(recv.getVariableId());
 
@@ -89,7 +100,7 @@ public class Client extends Machine{
     @CommandMethod
     private void dMalloc(String id) throws IOException, SecurityException, IllegalArgumentException, ClassNotFoundException {
         ClientMessage message = new ClientMessage("dMalloc", getId(), id, super.getPort());
-        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+        // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
         //processor.process(channel, id);
     }
@@ -98,7 +109,7 @@ public class Client extends Machine{
     @CommandMethod
     private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
-        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+//        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
         processor.process(channel, id);
         return 1;
@@ -108,7 +119,7 @@ public class Client extends Machine{
     @CommandMethod
     private int dAccessRead(String id) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), id, super.getPort());
-        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+        //Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
         System.out.println("read message 发送： "+message.toString());
         processor.process(channel, id);
@@ -119,7 +130,7 @@ public class Client extends Machine{
     @CommandMethod
     private void dRelease(String variableId) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
-        Channel channel = new ChannelBasic(new Socket("localhost",8080));
+        // Channel channel = new ChannelBasic(new Socket("localhost",8080));
         channel.send(message);
 
     }
@@ -128,7 +139,7 @@ public class Client extends Machine{
     @CommandMethod
     private void dFree(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dFree",getId(), id, super.getPort());
-        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+        // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
     }
 

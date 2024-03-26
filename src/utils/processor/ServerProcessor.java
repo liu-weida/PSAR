@@ -31,6 +31,7 @@ public class ServerProcessor implements Processor {
         ClientMessage clientMessage = (ClientMessage) channel.recv();
         String clientId = clientMessage.getClientId();
         String variableId = clientMessage.getVariableId();
+
         int clientPort = clientMessage.getClientPort();
         System.out.println("message recv from client : " + clientId);
         System.out.println("client port : " + clientPort);
@@ -86,11 +87,20 @@ public class ServerProcessor implements Processor {
             return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
         }
 
-        switch (server.modifyHeapDAccessRead(variableId).first()) {
+        Object obj = server.modifyHeapDAccessRead(variableId).first();
+        //System.out.println(obj.toString() + "   obj");
+        switch ((OperationStatus) obj) {
             case SUCCESS -> {
                 Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
 
-                return new ServerMessage(MessageType.DAR, SUCCESS,(InetAddress) p.first(), (Integer) p.second());
+               // System.out.println(p.first().toString() + "  p1");
+               // System.out.println(p.second().toString() + "  p2");
+
+                ServerMessage s = new ServerMessage(MessageType.DAR, SUCCESS,(InetAddress) p.first(), (Integer) p.second());
+
+                //System.out.println(s.toString() + "  s");
+
+                return s;
             }
             case LOCKED -> {
                 return new ServerMessage(MessageType.DAR, LOCKED);

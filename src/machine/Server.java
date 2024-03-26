@@ -19,6 +19,8 @@ import java.net.SocketException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Server extends Machine{
@@ -27,8 +29,9 @@ public class Server extends Machine{
 
 
     private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();//用作锁 <varibleId，true/false>
-                                                                                    //false被锁，true未被锁
+    //false被锁，true未被锁
 
+    private static ConcurrentHashMap<Integer, ExecutorService> clientExecutors = new ConcurrentHashMap<>();
 
     public Server(int port, String id) throws IOException {
         super(id, port);
@@ -43,8 +46,29 @@ public class Server extends Machine{
         try {
             System.out.println("Server started on port " + super.getPort());
             while (!Thread.currentThread().isInterrupted()) {
-                Socket clientSocket = super.getServerSocket().accept(); // 接收客户端连接
-                new Thread(new ClientHandler(clientSocket, this)).start(); // 为每个客户端连接创建一个新的线程
+                Socket clientSocket = super.getServerSocket().accept(); // 接收客户端连接，一个client全程只使用同一个socket
+                int clientPort = clientSocket.getPort();
+                ExecutorService executor = clientExecutors.computeIfAbsent(clientPort, k -> Executors.newSingleThreadExecutor());
+                executor.execute(() -> {
+                    try {
+                        Channel channel = new ChannelBasic(clientSocket);
+                        while (!clientSocket.isClosed()) {
+                            System.out.println("处理客户端请求");
+                            Message message = processor.process(channel, " ");
+                            System.out.println("heap： " + getHeap());
+                            channel.send(message);
+                        }
+                        } catch (Exception e) {
+                            System.out.println("处理客户端请求时出错: " + e.getMessage());
+                        } finally {
+                            try {
+                                clientSocket.close();
+                            } catch (IOException e) {
+                                System.out.println("关闭客户端连接时出错: " + e.getMessage());
+                            }
+                        }
+
+                });
             }
         } catch (SocketException e) {
             System.out.println("SocketException");
@@ -73,32 +97,32 @@ public class Server extends Machine{
     @ModifyMethod
     public OperationStatus modifyHeapDMalloc(String variableId){
 
-            LinkedList<Pair> newList = new LinkedList<>();
-            heap.put(variableId, newList);
-            heapLock.put(variableId,true);  //true -> 未被锁定
-            return OperationStatus.SUCCESS;
+        LinkedList<Pair> newList = new LinkedList<>();
+        heap.put(variableId, newList);
+        heapLock.put(variableId,true);  //true -> 未被锁定
+        return OperationStatus.SUCCESS;
 
     }
 
     @ModifyMethod
     public OperationStatus modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
 
-            if (heapLock.get(variableId)){    //检测是否被锁
-                heapLock.put(variableId,false);  //如果没被锁则加锁
-                System.out.println("lock锁定！");
-            }else {
-                System.out.println("lock已被锁！");
-                return OperationStatus.LOCKED;
-            }
+        if (heapLock.get(variableId)){    //检测是否被锁
+            heapLock.put(variableId,false);  //如果没被锁则加锁
+            System.out.println("lock锁定！");
+        }else {
+            System.out.println("lock已被锁！");
+            return OperationStatus.LOCKED;
+        }
 
-            LinkedList<Pair> localListW = heap.get(variableId);
-            Pair insertEl = new Pair(host, port);
-            if (localListW.contains(insertEl)) {
-                localListW.remove(insertEl);
-            }
-            localListW.addFirst(insertEl);
+        LinkedList<Pair> localListW = heap.get(variableId);
+        Pair insertEl = new Pair(host, port);
+        if (localListW.contains(insertEl)) {
+            localListW.remove(insertEl);
+        }
+        localListW.addFirst(insertEl);
 
-            return OperationStatus.SUCCESS;
+        return OperationStatus.SUCCESS;
 
     }
 
