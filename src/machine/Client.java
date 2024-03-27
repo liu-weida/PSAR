@@ -102,7 +102,7 @@ public class Client extends Machine{
         ClientMessage message = new ClientMessage("dMalloc", getId(), id, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
-        //processor.process(channel, id);
+        processor.process(channel, id);
     }
 
     //向服务器发送写入请求，(如果存在这个数据并且数据未上锁)收到确认消息，返回自己堆中该数据的地址位置，如果收到报错信息，返回null
@@ -132,6 +132,7 @@ public class Client extends Machine{
         ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost",8080));
         channel.send(message);
+        processor.process(channel, variableId);
 
     }
 
@@ -141,6 +142,7 @@ public class Client extends Machine{
         ClientMessage message = new ClientMessage("dFree",getId(), id, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
         channel.send(message);
+        processor.process(channel, id);
     }
 
 }
