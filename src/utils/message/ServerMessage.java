@@ -3,7 +3,8 @@ package utils.message;
 import java.io.Serializable;
 import java.net.InetAddress;
 
-public class ServerMessage extends Message implements Serializable {
+public class ServerMessage implements Message, Serializable {
+
     private MessageType messageType;
     private boolean successes;
 
@@ -11,15 +12,14 @@ public class ServerMessage extends Message implements Serializable {
     int clientPort = -1; // 修改默认值为-1，表示未设置
     InetAddress clientHost = null;
 
-    public ServerMessage(MessageType messageType, OperationStatus status, String vairableId) {
-        super(vairableId);
+    public ServerMessage(MessageType messageType, OperationStatus status) {
         this.messageType = messageType;
         this.successes = status == OperationStatus.SUCCESS;
         this.message = status; // 根据状态生成消息文本
     }
 
-    public ServerMessage(MessageType messageType, OperationStatus status, InetAddress clientHost, int clientPort, String variableId) {
-        this(messageType, status, variableId);
+    public ServerMessage(MessageType messageType, OperationStatus status, InetAddress clientHost, int clientPort) {
+        this(messageType, status);
         this.clientPort = clientPort;
         this.clientHost = clientHost;
     }

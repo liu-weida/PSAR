@@ -8,5 +8,5 @@ import java.io.IOException;
 import java.net.Socket;
 
 public interface Processor {
-    Message process(Message message) throws IOException, ClassNotFoundException, ServerException;
+    Message process(Channel channel, String id) throws IOException, ClassNotFoundException, ServerException;
 }
