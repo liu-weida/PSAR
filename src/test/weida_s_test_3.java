@@ -201,24 +201,10 @@ public class weida_s_test_3 {
                     System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
-//                    if (client.heapHaveData(dataName)) {
-//                        client.request("dAccessWrite", dataName);
-//                        System.out.println("dAccessWrite request sent for " + dataName);
-//                    } else {
-//                        System.out.println("Data does not exist");
-//                        System.out.println("Please set the object first");
-//                    }
                     client.request("dAccessWrite", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
                 case 3:
-//                    if (client.heapHaveData(dataName)) {
-//                        client.request("dAccessRead", dataName);
-//                        System.out.println("dAccessRead request sent for " + dataName);
-//                    } else {
-//                        System.out.println("Data does not exist.");
-//                    }
-
                     String dataName2 = scanner.nextLine();
 
                     client.request("dAccessRead", dataName2);
@@ -249,17 +235,6 @@ public class weida_s_test_3 {
         }
     }
 
-//    private void testStop(){
-//        try {
-//            if (_server != null) {
-//                _server.close(); // 关闭服务器
-//            }
-//        } catch (IOException e) {
-//            System.out.println("Error occurred while stopping the server.");
-//            e.printStackTrace();
-//        }
-//        System.out.println("Test ended.");
-//    }
 
     public static void main(String[] args) {
         weida_s_test_3 test = new weida_s_test_3();

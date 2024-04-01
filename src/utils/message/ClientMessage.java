@@ -2,21 +2,22 @@ package utils.message;
 
 import java.io.Serializable;
 
-public class ClientMessage extends Message implements Serializable {
+public class ClientMessage implements Message, Serializable {
     private final String command;
     private String clientId = null;
+    private String variableId = null;
     private final int clientPort;
 
     public ClientMessage(String command, String clientId, String variableId, int clientPort) {  //for dMalloc,dAccessWrite, // dAccessRead,dFree
-        super(variableId);
         this.command = command;
         this.clientId = clientId;
+        this.variableId = variableId;
         this.clientPort = clientPort;
     }
 
     public ClientMessage(String command, String variableId, int clientPort) {  // pour dRelease
-        super(variableId);
         this.command = command;
+        this.variableId = variableId;
         this.clientPort = clientPort;
     }
 
@@ -28,6 +29,10 @@ public class ClientMessage extends Message implements Serializable {
         return clientId;
     }
 
+    public String getVariableId() {
+        return variableId;
+    }
+
     public int getClientPort() {
         return  clientPort;
     }
@@ -35,7 +40,7 @@ public class ClientMessage extends Message implements Serializable {
     public String toString() {
         return "Command :" + getCommand() + "\n" +
                 "Client id :" + getClientId() + "\n" +
-                super.toString() +
+                "Var id :" + getVariableId() + "\n" +
                 "Client port :" + getClientId();
     }
 }
