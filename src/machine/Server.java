@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
+
 public class Server extends Machine{
     final ServerProcessor processor = new ServerProcessor();
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
@@ -77,6 +78,7 @@ public class Server extends Machine{
                                 System.out.println("关闭客户端连接时出错: " + e.getMessage());
                             }
                         }
+//                    System.out.println("123");
 
                 });
             }
@@ -209,7 +211,6 @@ public class Server extends Machine{
             heapLock.remove(variableId);
             return OperationStatus.SUCCESS;
         }
-
     }
 
 

@@ -7,14 +7,16 @@ import utils.channel.Channel;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static utils.message.OperationStatus.LOCKED;
-import static utils.message.OperationStatus.SUCCESS;
+import static utils.message.OperationStatus.*;
 
 public class ServerProcessor implements Processor {
     private Server server;
     // private ServerMessage message;
     // private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    AtomicBoolean atomicBoolean = new AtomicBoolean(true); //用来测试，记得删
 
     public ServerProcessor() {
         this.server = null;
@@ -25,26 +27,52 @@ public class ServerProcessor implements Processor {
     }
 
     public Message process(Channel channel, String id) throws IOException, ClassNotFoundException {
-        Message message;
+        Message message = null;
+        ClientMessage clientMessage = null;
+        HeartbeatMessage heartbeatMessage = null;
         System.out.println("waiting for message on port : " + channel.getRemotePort());
-        ClientMessage clientMessage = (ClientMessage) channel.recv();
-        String clientId = clientMessage.getClientId();
-        String variableId = clientMessage.getVariableId();
 
-        int clientPort = clientMessage.getClientPort();
-        System.out.println("message recv from client : " + clientId);
-        System.out.println("client port : " + clientPort);
-        System.out.println("variableId: " + variableId);
+        Message messageRecy = (Message) channel.recv();
 
-        switch (clientMessage.getCommand()) {
-            case "dMalloc" -> message = handleDMalloc(variableId);
-            case "dAccessWrite" -> message = handleDAccessWrite(variableId, channel.getRemoteHost(), clientPort);
-            case "dAccessRead" -> message = handleDAccessRead(variableId);
-            case "dRelease" -> message = handleDRelease(channel, variableId);
-            case "dFree" -> message = handleDFree(variableId, channel);
-            default -> message = new ServerMessage(MessageType.EXP, OperationStatus.COMMAND_ERROR);
+        if (messageRecy instanceof HeartbeatMessage){  //收到的是心跳信息
+
+            System.out.println("心跳信息");
+
+            System.out.println(getCurrentProcessId()+ "   pid");
+
+            if (atomicBoolean.get()){  //用来测试，记得删
+                atomicBoolean.set(false);
+                return new HeartbeatMessage(MessageType.HBM,HEARTNORMAL,getCurrentProcessId());
+            }else {
+                return null;
+            }
+
+            //return new HeartbeatMessage(MessageType.HBM,HEARTNORMAL,getCurrentProcessId());
+            //return null;
+
+        }else if (messageRecy instanceof ClientMessage){  //收到的是客户端信息
+
+            clientMessage = (ClientMessage)messageRecy;
+
+            String clientId = clientMessage.getClientId();
+            String variableId = clientMessage.getVariableId();
+
+            int clientPort = clientMessage.getClientPort();
+            System.out.println("message recv from client : " + clientId);
+            System.out.println("client port : " + clientPort);
+            System.out.println("variableId: " + variableId);
+
+            switch (clientMessage.getCommand()) {
+                case "dMalloc" -> message = handleDMalloc(variableId);
+                case "dAccessWrite" -> message = handleDAccessWrite(variableId, channel.getRemoteHost(), clientPort);
+                case "dAccessRead" -> message = handleDAccessRead(variableId);
+                case "dRelease" -> message = handleDRelease(channel, variableId);
+                case "dFree" -> message = handleDFree(variableId, channel);
+                default -> message = new ServerMessage(MessageType.EXP, OperationStatus.COMMAND_ERROR);
+            }
+            return message;
         }
-        return message;
+        return null;
     }
 
     //返回成功信息//如果数据信息已经存在或添加数据信息失败，发送错误信息
@@ -147,6 +175,10 @@ public class ServerProcessor implements Processor {
         }
 
         return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
+    }
+
+    public static long getCurrentProcessId() {
+        return ProcessHandle.current().pid();
     }
 }
 

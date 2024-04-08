@@ -16,4 +16,5 @@ public interface Channel {
     InetAddress getLocalHost();
     int getLocalPort();
     Socket getSocket();
+    public void close() throws IOException;
 }
