@@ -7,17 +7,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class weida_s_test_3 {
+public class autotest_2 {
     private ArrayList<Client> _clients = new ArrayList<Client>();
     Scanner scanner = new Scanner(System.in);
 
     public void autoCreateClient(){
         int firstPort = 6060;
-        for (int i = 1; i <= 10; i++){ // 索引从1开始
+        for (int i = 1; i <= 2; i++){ // 索引从1开始
             try {
                 Client client = new Client(firstPort + i - 1, String.valueOf(i));
                 _clients.add(client);
-                //System.out.println("Client created successfully: port = " + (firstPort + i - 1) + ", clientID = " + i);
             } catch (Exception e){
                 System.out.println("Fail to create client");
                 e.printStackTrace();
@@ -36,6 +35,7 @@ public class weida_s_test_3 {
         if (_clients.size() >= 2) { // 确保至少有两个客户端
             autoPerformOperations1(_clients.get(0)); // 对c1执行操作
             autoPerformOperations2(_clients.get(1)); // 对c2执行操作
+            //autoPerformOperations2(_clients.get(2)); // 对c2执行操作
         }
 
         // 提供用户进行操作的选项
@@ -100,7 +100,25 @@ public class weida_s_test_3 {
         }
     }
 
+    private void autoPerformOperations3(Client client) {
+        try {
+            // 假设request方法接受操作名称和数据名称
+            client.request("dMalloc", "c2");
+            System.out.println("dMalloc request auto-performed for c2.");
 
+            client.request("dAccessWrite", "c2");
+            System.out.println("dAccessWrite request auto-performed for c2.");
+
+            client.request("dRelease", "c2");
+            System.out.println("dRelease request auto-performed for c2.");
+
+            client.request("dAccessRead","c1");
+            System.out.println("c2向c1发送read请求");
+        } catch (Exception e) {
+            System.out.println("Failed to auto-perform operations for " + client.getId());
+            e.printStackTrace();
+        }
+    }
 
     private void autoCreateDataForClient(Client client, int index) {
         String name = "c" + index;
@@ -201,6 +219,7 @@ public class weida_s_test_3 {
                     System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
+
                     client.request("dAccessWrite", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
@@ -237,10 +256,8 @@ public class weida_s_test_3 {
 
 
     public static void main(String[] args) {
-        weida_s_test_3 test = new weida_s_test_3();
+        autotest_2 test = new autotest_2();
         test.testStart();
-        //System.out.println(1);
-        //Thread.currentThread().interrupt();
     }
 
 }
