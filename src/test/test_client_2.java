@@ -8,18 +8,16 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.*;
 
-public class test_client_1 {
+public class test_client_2 {
     private ArrayList<Client> _clients = new ArrayList<>();
     Scanner scanner = new Scanner(System.in);
-    int firstPort = 6060; // 初始端口
-
-
+    int firstPort = 6061; // 初始端口
 
     public void autoCreateClient(){
         // 仅创建一个客户端
         if (_clients.isEmpty()) {
             try {
-                Client client = new Client(firstPort, "c1");
+                Client client = new Client(firstPort, "c2");
                 _clients.add(client);
             } catch (Exception e){
                 System.out.println("Fail to create client");
@@ -69,7 +67,7 @@ public class test_client_1 {
     }
 
     private void autoCreateDataForClient(Client client) {
-        String name = "c1";
+        String name = "c2";
         int value = 100; // 给定一个初始值
         if (!client.heapHaveData(name)) {
             client.setObject(name, value);
@@ -195,7 +193,7 @@ public class test_client_1 {
 
 
     public static void main(String[] args) {
-        test_client_1 test = new test_client_1();
+        test_client_2 test = new test_client_2();
         test.testStart();
     }
 }

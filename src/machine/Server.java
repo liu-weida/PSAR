@@ -67,7 +67,6 @@ public class Server extends Machine{
                             System.out.println("处理客户端请求");
                             processor.process(channel, " ");
                             System.out.println("heap： " + getHeap());
-                            //channel.send(message);
                         }
                         } catch (Exception e) {
                             System.out.println("处理客户端请求时出错: " + e.getMessage());
@@ -164,15 +163,6 @@ public class Server extends Machine{
     public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
-
-    public void request(String methodType, String args) {
-
-    }
-
-    public void respond() throws IOException {
-        // channel.send(message);
-    }
-
 
     @ModifyMethod
     public OperationStatus modifyHeapDMalloc(String variableId){

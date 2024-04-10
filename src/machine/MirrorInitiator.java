@@ -67,7 +67,7 @@ public class MirrorInitiator extends Machine {
             handleError(e);
         }
 
-        if (heartbeatMessage == null) {
+        if (heartbeatMessage.getOperationStatus() != OperationStatus.HEARTNORMAL || heartbeatMessage.getSource() != HeartbeatMessage.Source.SERVER || heartbeatMessage == null) {
             throw new SocketException("No response received from server.");
         }
         System.out.println(heartbeatMessage.toString());

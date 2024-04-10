@@ -65,8 +65,8 @@ public class Client extends Machine{
             socket.connect(new InetSocketAddress(serverHost, serverPort));
             localPort = socket.getLocalPort();
         } else {
-                socket.bind(new InetSocketAddress((InetAddress)null, this.localPort));
-                socket.connect(new InetSocketAddress(serverHost, serverPort));
+            socket.bind(new InetSocketAddress((InetAddress)null, this.localPort));
+            socket.connect(new InetSocketAddress(serverHost, serverPort));
         }
         return new ChannelBasic(socket);
     }
@@ -110,16 +110,6 @@ public class Client extends Machine{
         }
     }
 
-    public void respond() throws IOException, ClassNotFoundException {
-
-    }
-
-//    @Override
-//    // public boolean modifyHeap(String methodType, String key, String value){
-//        return false;
-//    }
-
-
     public Channel connectToClient(InetAddress host, int port) throws IOException {
         return new ChannelBasic(new Socket(host, port));
     }
@@ -154,28 +144,14 @@ public class Client extends Machine{
     @CommandMethod
     private void dMalloc(String id) throws IOException, SecurityException, IllegalArgumentException, ClassNotFoundException {
         ClientMessage message = new ClientMessage("dMalloc", getId(), id, super.getPort());
-        // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-
-        try {
-            channel.send(message);
-        }catch (IOException e){
-            reconnectToServer();
-        }
-
-        processor.process(channel, id);
+        sendMessage(message,id);
     }
 
     //向服务器发送写入请求，(如果存在这个数据并且数据未上锁)收到确认消息，返回自己堆中该数据的地址位置，如果收到报错信息，返回null
     @CommandMethod
     private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
-//        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        try {
-            channel.send(message);
-        }catch (IOException e){
-            reconnectToServer();
-        }
-        processor.process(channel, id);
+        sendMessage(message,id);
         return 1;
     }
 
@@ -183,14 +159,7 @@ public class Client extends Machine{
     @CommandMethod
     private int dAccessRead(String id) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), id, super.getPort());
-        //Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        try {
-            channel.send(message);
-        }catch (IOException e){
-            reconnectToServer();
-        }
-        System.out.println("read message 发送： "+message.toString());
-        processor.process(channel, id);
+        sendMessage(message,id);
         return 1;
     }
 
@@ -198,28 +167,26 @@ public class Client extends Machine{
     @CommandMethod
     private void dRelease(String variableId) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
-        // Channel channel = new ChannelBasic(new Socket("localhost",8080));
-        try {
-            channel.send(message);
-        }catch (IOException e){
-            reconnectToServer();
-        }
-        processor.process(channel, variableId);
-
+        sendMessage(message,variableId);
     }
 
     //发出删除信号消息，等待回信
     @CommandMethod
     private void dFree(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dFree",getId(), id, super.getPort());
-        // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
+        sendMessage(message,id);
+    }
+
+    private void sendMessage(Message message, String id) throws IOException, ClassNotFoundException {
+
         try {
             channel.send(message);
         }catch (IOException e){
             reconnectToServer();
+            channel.send(message);
         }
         processor.process(channel, id);
-    }
 
+    }
 
 }

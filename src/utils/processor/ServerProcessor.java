@@ -72,7 +72,7 @@ public class ServerProcessor implements Processor {
         this.server = server;
     }
 
-    public Void process(Channel channel, String id) throws IOException, ClassNotFoundException {
+    public void process(Channel channel, String id) throws IOException, ClassNotFoundException {
 
         HeartbeatMessage heartbeatMessage = null;
         System.out.println("waiting for message on port : " + channel.getRemotePort());
@@ -89,7 +89,6 @@ public class ServerProcessor implements Processor {
         } else if (messageRecy instanceof ClientMessage){  //收到的是客户端信息
            handlingClientMessage((ClientMessage)messageRecy,channel);
         }
-        return null;
     }
 
     private void handlingHBMirror(Channel channel) throws IOException {

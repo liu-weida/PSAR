@@ -1,6 +1,7 @@
 package utils.processor;
 
 import machine.Client;
+import machine.Machine;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.message.Message;
@@ -19,7 +20,7 @@ public class ClientProcessor implements Processor{
     }
 
     @Override
-    public Void process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
+    public void process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
         ServerMessage message = (ServerMessage) channel.recv();
 
         if (message.getMessageType() == MessageType.DAR) {
@@ -38,41 +39,7 @@ public class ClientProcessor implements Processor{
             client.modifyHeap(sendDataMessage.getVariableId(), replyMessage.getValue());
         }
 
-        return null;
     }
 
 
-    //自己发自己收！！！！
-
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            }
-
-//            SendDataMessage sendDataMessage1 = (SendDataMessage) distanceChannel.recv();
-//
-//            System.out.println(sendDataMessage.toString() + "   sendDataMessage");
-//
-//            client.modifyHeap(sendDataMessage.getVariableId(), sendDataMessage.getValue());
-//
-//        }
-////        else {
-//
-//            if (message.getMessageType() == MessageType.DAR) {
-//                Channel distanceChannel = client.connectToClient(message.getHost(), message.getPort());
-//                distanceChannel.send(new SendDataMessage(variableId, message.getClientHost(), client.getPort()));
-//                SendDataMessage sendDataMessage = (SendDataMessage) distanceChannel.recv();
-//                client.modifyHeap(sendDataMessage.getVariableId(), sendDataMessage.getValue());
-//            } else if (false) {
-//                //
-//            } else {
-//                System.out.println("\nRecived Message");
-//                System.out.println(message + "\n");
-//            }
-//            return message;
-//        }
-//        return message;
-//    }
 }
-///
