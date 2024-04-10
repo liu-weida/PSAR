@@ -19,7 +19,7 @@ public class ClientProcessor implements Processor{
     }
 
     @Override
-    public Message process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
+    public Void process(Channel channel, String variableId) throws IOException, ClassNotFoundException {
         ServerMessage message = (ServerMessage) channel.recv();
 
         if (message.getMessageType() == MessageType.DAR) {
@@ -27,6 +27,8 @@ public class ClientProcessor implements Processor{
             Channel distanceChannel = client.connectToClient(message.getClientHost(), message.getClientPort());
 
             SendDataMessage sendDataMessage = new SendDataMessage(variableId, client.getHost(), client.getPort());
+
+            System.out.println(sendDataMessage.toString() + " read message ！！！！！！！！！！");
 
             distanceChannel.send(sendDataMessage);
 
@@ -36,7 +38,7 @@ public class ClientProcessor implements Processor{
             client.modifyHeap(sendDataMessage.getVariableId(), replyMessage.getValue());
         }
 
-        return message;
+        return null;
     }
 
 

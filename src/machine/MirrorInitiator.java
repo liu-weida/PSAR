@@ -54,7 +54,7 @@ public class MirrorInitiator extends Machine {
     }
 
     private void heartbeatSend() throws IOException, ClassNotFoundException {
-        HeartbeatMessage hbm = new HeartbeatMessage(MessageType.HBM, OperationStatus.HEART);
+        HeartbeatMessage hbm = new HeartbeatMessage(HeartbeatMessage.Source.MIRROR, OperationStatus.HEART);
         channel.send(hbm);
     }
 

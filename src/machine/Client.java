@@ -2,18 +2,22 @@ package machine;
 
 import annotations.CommandMethod;
 import utils.channel.ChannelBasic;
-import utils.message.ClientMessage;
+import utils.message.*;
 import utils.channel.Channel;
-import utils.message.Message;
-import utils.message.SendDataMessage;
 import utils.processor.ClientProcessor;
+import utils.tools.CountdownTimer;
+import utils.tools.Pair;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Client extends Machine{
     private HashMap<String, Object> localHeap = new HashMap<>();
@@ -22,31 +26,59 @@ public class Client extends Machine{
     private final int serverPort = 8080; // 服务器端口
     private final String serverHost = "localhost"; // 服务器地址
 
+    int localPort = -1;
+
     public Client(int port, String clientId) throws IOException {
         super(clientId, port);
         System.out.println("构造函数开始执行");
         this.channel = createChannel();
         processor.setCLient(this);
         listenForClientMessages();
+        heartBeat();
         System.out.println("构造函数执行完毕");
     }
 
 
+    private void heartBeat() {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> {
 
+            InetAddress localHost = channel.getLocalHost();
+            int localPort = super.getPort();
 
-    private Channel createChannel() throws IOException {
-        return new ChannelBasic(new Socket(serverHost, serverPort));
+            HeartbeatMessage heartbeatMessage = new HeartbeatMessage(HeartbeatMessage.Source.CLIENT,OperationStatus.HEART,localHost,localPort);
+
+            try {
+                channel.send(heartbeatMessage);
+                System.out.println("客户端心跳已发送");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }, 20, 20, TimeUnit.SECONDS);
+    }
+
+    private Channel createChannel() throws IOException {  //第一次端口随机选择，第二次端口选择第一次的
+        Socket socket = new Socket();
+        socket.setReuseAddress(true);
+        if (localPort == -1) {
+            socket.connect(new InetSocketAddress(serverHost, serverPort));
+            localPort = socket.getLocalPort();
+        } else {
+                socket.bind(new InetSocketAddress((InetAddress)null, this.localPort));
+                socket.connect(new InetSocketAddress(serverHost, serverPort));
+        }
+        return new ChannelBasic(socket);
     }
 
     public void reconnectToServer() {
         try {
             System.out.println("检测到连接中断，尝试重连");
-            Thread.sleep(5000); // 睡眠5秒
+            channel.close();
+            CountdownTimer timer = new CountdownTimer(5);  // 创建一个5秒的倒计时
+            //timer.start();
             this.channel = createChannel(); // 重新建立连接
             System.out.println("重连成功！");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println("线程中断: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("无法连接到服务器: " + e.getMessage());
         }
