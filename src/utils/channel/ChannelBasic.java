@@ -3,6 +3,7 @@ package utils.channel;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 
 public class ChannelBasic implements Channel {
@@ -25,6 +26,22 @@ public class ChannelBasic implements Channel {
     public Object recv() throws IOException, ClassNotFoundException  {
         ois = new ObjectInputStream(socket.getInputStream());
         return ois.readObject();
+    }
+
+    @Override
+    public Object recvWithTimeout(int timeout) throws IOException, ClassNotFoundException {  //这是个带超时的recv
+        //超时之后会抛出SocketTimeoutException
+        if (timeout > 0) {
+            socket.setSoTimeout(timeout);
+        }
+        try {
+            if (ois == null) {
+                ois = new ObjectInputStream(socket.getInputStream());
+            }
+            return ois.readObject();
+        } catch (SocketTimeoutException e) {
+            throw new IOException("接收超时: " + e.getMessage(), e);
+        }
     }
 
     @Override

@@ -94,7 +94,7 @@ public class Server extends Machine{
     public void startCompanionThread() {
         System.out.println("陪伴线程启动！！！！");
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(this:: runCompanionTask, 30, 30, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(this:: runCompanionTask, 0, 30, TimeUnit.SECONDS);
     }
 
     private void runCompanionTask() {

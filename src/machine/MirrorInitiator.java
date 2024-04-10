@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public class MirrorInitiator extends Machine {
 
@@ -31,9 +32,8 @@ public class MirrorInitiator extends Machine {
             while (continueRunning) {
                 try {
                     heartbeatSend();
-                    Thread.sleep(300); // 0.3s  后期得改成30
                     heartbeatRecv();
-                    Thread.sleep(300);
+                    Thread.sleep(300);// 0.3s  后期得改成30
                 } catch (Exception e) {
                     handleError(e);
                 }
@@ -45,7 +45,7 @@ public class MirrorInitiator extends Machine {
         if (!isOverCalled) {
             System.out.println("An error occurred: " + e.getMessage());
             try {
-                over();
+                reconnect();
             } catch (IOException | ClassNotFoundException ex) {
                 System.out.println("阿巴阿巴");
             }
@@ -59,7 +59,14 @@ public class MirrorInitiator extends Machine {
     }
 
     private void heartbeatRecv() throws IOException, ClassNotFoundException {
-        HeartbeatMessage heartbeatMessage = (HeartbeatMessage) channel.recv();
+        HeartbeatMessage heartbeatMessage = null;
+
+        try {
+            heartbeatMessage = (HeartbeatMessage) channel.recvWithTimeout(5000);  //timeout为5秒
+        }catch (SocketTimeoutException e){
+            handleError(e);
+        }
+
         if (heartbeatMessage == null) {
             throw new SocketException("No response received from server.");
         }
@@ -68,8 +75,11 @@ public class MirrorInitiator extends Machine {
         serverPid = heartbeatMessage.getServerPid();
     }
 
-    public void over() throws IOException, ClassNotFoundException {
-        if (!continueRunning) return; // 如果已经处理过，直接返回
+    public void reconnect() throws IOException, ClassNotFoundException {
+        if (!continueRunning) {    // 如果已经处理过，直接返回
+            return;
+        }
+
         System.out.println("心跳连接失效/socket连接断开！！！");
         continueRunning = true;
         killServer((int)serverPid);
@@ -85,11 +95,9 @@ public class MirrorInitiator extends Machine {
 
         try {
             if (os.contains("win")) {
-                // Windows命令
-                command = "taskkill /F /PID " + pid;
+                command = "taskkill /F /PID " + pid;   // Windows
             } else {
-                // Unix/Linux命令
-                command = "kill -9 " + pid;
+                command = "kill -9 " + pid;    // Unix/Linux
             }
 
             Process proc = Runtime.getRuntime().exec(command);
@@ -120,36 +128,5 @@ public class MirrorInitiator extends Machine {
         server.start();
     }
 
-//    public static void restartServer(int port, String serverName) {
-//        try {
-//            String javaHome = System.getProperty("java.home");
-//            String javaBin = javaHome + "/bin/java";
-//            String classpath = System.getProperty("java.class.path");
-//            String mainClass = "test.StartServer"; // 这里替换成Server类的完全限定名
-//
-//            ProcessBuilder processBuilder = new ProcessBuilder(
-//                    javaBin, "-cp", classpath, mainClass, String.valueOf(port), serverName);
-//            processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
-//
-//            Process process = processBuilder.start(); // 启动新的JVM进程
-//
-//            // 输出新进程的输出信息
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                System.out.println("Server Output: " + line);
-//            }
-//
-//            int exitCode = process.waitFor(); // 等待新进程结束
-//            System.out.println("Server exited with code " + exitCode);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 
-
-
-    public static void main(String[] args) throws IOException {
-        new MirrorInitiator("mirrorinitiator", 1010);
-    }
 }

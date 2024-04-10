@@ -9,6 +9,7 @@ public interface Channel {
     void send(Object object) throws IOException;
 
     Object recv() throws IOException, ClassNotFoundException;
+    public Object recvWithTimeout(int timeout) throws IOException, ClassNotFoundException;
 
     InetAddress getRemoteHost();
     int getRemotePort();

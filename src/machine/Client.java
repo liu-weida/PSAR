@@ -4,6 +4,7 @@ import annotations.CommandMethod;
 import utils.channel.ChannelBasic;
 import utils.message.ClientMessage;
 import utils.channel.Channel;
+import utils.message.Message;
 import utils.message.SendDataMessage;
 import utils.processor.ClientProcessor;
 
@@ -15,19 +16,40 @@ import java.net.Socket;
 import java.util.HashMap;
 
 public class Client extends Machine{
-    private HashMap<String, Object> localHeap = new HashMap<>();//数据储存在这里
-
+    private HashMap<String, Object> localHeap = new HashMap<>();
     private ClientProcessor processor = new ClientProcessor();
-
     private Channel channel;
+    private final int serverPort = 8080; // 服务器端口
+    private final String serverHost = "localhost"; // 服务器地址
 
     public Client(int port, String clientId) throws IOException {
         super(clientId, port);
         System.out.println("构造函数开始执行");
-        this.channel = new ChannelBasic(new Socket("localhost", 8080));
+        this.channel = createChannel();
         processor.setCLient(this);
         listenForClientMessages();
         System.out.println("构造函数执行完毕");
+    }
+
+
+
+
+    private Channel createChannel() throws IOException {
+        return new ChannelBasic(new Socket(serverHost, serverPort));
+    }
+
+    public void reconnectToServer() {
+        try {
+            System.out.println("检测到连接中断，尝试重连");
+            Thread.sleep(5000); // 睡眠5秒
+            this.channel = createChannel(); // 重新建立连接
+            System.out.println("重连成功！");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("线程中断: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("无法连接到服务器: " + e.getMessage());
+        }
     }
 
     public boolean heapHaveData(String variableId){
@@ -101,7 +123,13 @@ public class Client extends Machine{
     private void dMalloc(String id) throws IOException, SecurityException, IllegalArgumentException, ClassNotFoundException {
         ClientMessage message = new ClientMessage("dMalloc", getId(), id, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        channel.send(message);
+
+        try {
+            channel.send(message);
+        }catch (IOException e){
+            reconnectToServer();
+        }
+
         processor.process(channel, id);
     }
 
@@ -110,7 +138,11 @@ public class Client extends Machine{
     private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
 //        Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        channel.send(message);
+        try {
+            channel.send(message);
+        }catch (IOException e){
+            reconnectToServer();
+        }
         processor.process(channel, id);
         return 1;
     }
@@ -120,7 +152,11 @@ public class Client extends Machine{
     private int dAccessRead(String id) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), id, super.getPort());
         //Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        channel.send(message);
+        try {
+            channel.send(message);
+        }catch (IOException e){
+            reconnectToServer();
+        }
         System.out.println("read message 发送： "+message.toString());
         processor.process(channel, id);
         return 1;
@@ -131,7 +167,11 @@ public class Client extends Machine{
     private void dRelease(String variableId) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost",8080));
-        channel.send(message);
+        try {
+            channel.send(message);
+        }catch (IOException e){
+            reconnectToServer();
+        }
         processor.process(channel, variableId);
 
     }
@@ -141,8 +181,13 @@ public class Client extends Machine{
     private void dFree(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dFree",getId(), id, super.getPort());
         // Channel channel = new ChannelBasic(new Socket("localhost", 8080));
-        channel.send(message);
+        try {
+            channel.send(message);
+        }catch (IOException e){
+            reconnectToServer();
+        }
         processor.process(channel, id);
     }
+
 
 }
