@@ -6,7 +6,6 @@ import java.io.Serializable;
 import java.net.InetAddress;
 
 public class HeartbeatMessage implements Message, Serializable {
-
     public enum Source {
         MIRROR, SERVER, CLIENT
     }

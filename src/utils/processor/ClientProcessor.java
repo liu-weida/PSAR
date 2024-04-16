@@ -29,7 +29,7 @@ public class ClientProcessor implements Processor{
 
             SendDataMessage sendDataMessage = new SendDataMessage(variableId, client.getHost(), client.getPort());
 
-            System.out.println(sendDataMessage.toString() + " read message ！！！！！！！！！！");
+            System.out.println(sendDataMessage + " read message ！！！！！！！！！！");
 
             distanceChannel.send(sendDataMessage);
 

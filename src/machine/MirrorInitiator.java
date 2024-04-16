@@ -3,7 +3,6 @@ package machine;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
 import utils.message.HeartbeatMessage;
-import utils.message.MessageType;
 import utils.message.OperationStatus;
 
 import java.io.BufferedReader;
@@ -18,12 +17,12 @@ public class MirrorInitiator extends Machine {
     private Channel channel;
     private boolean continueRunning = true;
     private boolean isOverCalled = false; // 避免over方法重复调用
-
     private long serverPid;
-
+    private String serverHost =  "localhost";
+    private int serverport = 8080;
     public MirrorInitiator(String id, int port) throws IOException {
         super(id, port);
-        this.channel = new ChannelBasic(new Socket("localhost", 8080));
+        this.channel = new ChannelBasic(new Socket(serverHost, serverport+1));
         startHeartbeat();
     }
 
@@ -47,13 +46,12 @@ public class MirrorInitiator extends Machine {
             try {
                 reconnect();
             } catch (IOException | ClassNotFoundException ex) {
-                System.out.println("阿巴阿巴");
             }
             isOverCalled = true; // 标记已调用
         }
     }
 
-    private void heartbeatSend() throws IOException, ClassNotFoundException {
+    private void heartbeatSend() throws IOException {
         HeartbeatMessage hbm = new HeartbeatMessage(HeartbeatMessage.Source.MIRROR, OperationStatus.HEART);
         channel.send(hbm);
     }

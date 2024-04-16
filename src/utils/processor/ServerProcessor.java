@@ -1,6 +1,7 @@
 package utils.processor;
 
 import machine.Server;
+import utils.tools.Buffer;
 import utils.tools.Pair;
 import utils.message.*;
 import utils.channel.Channel;
@@ -17,18 +18,39 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static utils.message.OperationStatus.*;
 
 public class ServerProcessor implements Processor {
-    private Server server;
-
+    private Server server = null;
+    public Buffer buffer= new Buffer();
     private Pair pair;
-
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private volatile long lastHeartbeatTime = System.currentTimeMillis();
+    private boolean shouldStop = false;
+    private AtomicBoolean atomicBoolean = new AtomicBoolean(true); //用来测试，记得删
+    public Thread thread = new Thread(() -> {
+        System.out.println("thread已启动！！！");
+        try {
+            processJobs();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    });
 
-    AtomicBoolean atomicBoolean = new AtomicBoolean(true); //用来测试，记得删
+    private void processJobs() throws IOException {
+        System.out.println("processjobs已启动！！！");
+        while (! shouldStop) {
+            System.out.println(buffer);
+            int curr = buffer.getCurr();
 
-    public ServerProcessor() {
-        this.server = null;
+            System.out.println(curr + "   curr!!!");
+            //System.out.println(buffer.getJobList() + "    joblist !!!");
 
+            Pair job = buffer.getJobList().get(curr);
+            handlingClientMessage((ClientMessage) job.first(), (Channel) job.second());
+            buffer.changeCurr();
+        }
+    }
+
+    public void setShouldStop(boolean bool) {
+        shouldStop = bool;
     }
 
     private void checkHeartbeat() {
@@ -62,6 +84,7 @@ public class ServerProcessor implements Processor {
             // 删除所有标记的键
             for (String key : keysToRemove) {
                 server.getHeap().remove(key);
+                buffer.remove(key);
                 System.out.println("Removed key '" + key + "' from the heap.");
             }
        }
@@ -74,20 +97,17 @@ public class ServerProcessor implements Processor {
 
     public void process(Channel channel, String id) throws IOException, ClassNotFoundException {
 
-        HeartbeatMessage heartbeatMessage = null;
-        System.out.println("waiting for message on port : " + channel.getRemotePort());
+        //System.out.println("waiting for message on port : " + channel.getRemotePort());   //这句记得取消注释
 
         Message messageRecy = (Message) channel.recv();
 
         if (messageRecy instanceof HeartbeatMessage) {  //收到的是心跳信息
-
             switch (((HeartbeatMessage) messageRecy).getSource()){
                 case MIRROR -> handlingHBMirror(channel);
                 case CLIENT ->  handlingHBClient((HeartbeatMessage) messageRecy);
             }
-
         } else if (messageRecy instanceof ClientMessage){  //收到的是客户端信息
-           handlingClientMessage((ClientMessage)messageRecy,channel);
+            handlingClientMessage((ClientMessage) messageRecy, channel);
         }
     }
 
@@ -109,16 +129,16 @@ public class ServerProcessor implements Processor {
     private void handlingHBClient(HeartbeatMessage heartbeatMessage) throws IOException {
         scheduler.scheduleWithFixedDelay(this::checkHeartbeat, 0, 1, TimeUnit.SECONDS);
         lastHeartbeatTime = System.currentTimeMillis();
-        System.out.println("收到来自于客户端的心跳信息");
+
+        //System.out.println("收到来自于客户端的心跳信息");
 
         pair = heartbeatMessage.getPair();
 
-        System.out.println("pair已记录");
-
+       // System.out.println("pair已记录");
     }
 
     private void handlingClientMessage(ClientMessage clientMessage,Channel channel) throws IOException {
-        Message message = null;
+        ServerMessage message;
         String clientId = clientMessage.getClientId();
         String variableId = clientMessage.getVariableId();
 
@@ -127,6 +147,7 @@ public class ServerProcessor implements Processor {
         System.out.println("client port : " + clientPort);
         System.out.println("variableId: " + variableId);
 
+        System.out.println("处理客户端请求");
         switch (clientMessage.getCommand()) {
             case "dMalloc" -> message = handleDMalloc(variableId);
             case "dAccessWrite" -> message = handleDAccessWrite(variableId, channel.getRemoteHost(), clientPort);
@@ -135,6 +156,7 @@ public class ServerProcessor implements Processor {
             case "dFree" -> message = handleDFree(variableId, channel);
             default -> message = new ServerMessage(MessageType.EXP, OperationStatus.COMMAND_ERROR);
         }
+        System.out.println("heap: " + server.getHeap());
         channel.send(message);
     }
 
@@ -171,7 +193,7 @@ public class ServerProcessor implements Processor {
     }
 
     //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
-    private Message handleDAccessRead(String variableId) {
+    private ServerMessage handleDAccessRead(String variableId) {
         System.out.println("收到客户端阅读请求");
         if (!server.variableExistsHeap(variableId)) {
             return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
@@ -203,7 +225,7 @@ public class ServerProcessor implements Processor {
     }
 
 
-    //在这里收到Drelease是错误的，直接报错   //已修改，但是只有解锁功能，等待buffer完成后继续完善
+    //在这里收到Drelease是错误的，直接报错
     private ServerMessage handleDRelease(Channel channel, String variableId) throws IOException {
         System.out.println("数据使用完毕");
 

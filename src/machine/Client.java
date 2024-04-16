@@ -23,19 +23,20 @@ public class Client extends Machine{
     private HashMap<String, Object> localHeap = new HashMap<>();
     private ClientProcessor processor = new ClientProcessor();
     private Channel channel;
+    private Channel channelHeart;
     private final int serverPort = 8080; // 服务器端口
     private final String serverHost = "localhost"; // 服务器地址
 
     int localPort = -1;
+    int localPortHeart = -1;
 
     public Client(int port, String clientId) throws IOException {
         super(clientId, port);
-        System.out.println("构造函数开始执行");
-        this.channel = createChannel();
+        this.channel = createChannel(true);  //true代表正常消息的隧道
+        this.channelHeart = createChannel(false); //false代表心跳消息的隧道
         processor.setCLient(this);
         listenForClientMessages();
         heartBeat();
-        System.out.println("构造函数执行完毕");
     }
 
 
@@ -43,44 +44,65 @@ public class Client extends Machine{
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
 
-            InetAddress localHost = channel.getLocalHost();
+            InetAddress localHost = channelHeart.getLocalHost();
             int localPort = super.getPort();
 
             HeartbeatMessage heartbeatMessage = new HeartbeatMessage(HeartbeatMessage.Source.CLIENT,OperationStatus.HEART,localHost,localPort);
 
             try {
-                channel.send(heartbeatMessage);
-                System.out.println("客户端心跳已发送");
+                channelHeart.send(heartbeatMessage);
+
             } catch (IOException e) {
-                throw new RuntimeException(e);
+
+                reconnectToServer();
+                try {
+                    channelHeart.send(heartbeatMessage);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
 
         }, 20, 20, TimeUnit.SECONDS);
+//        }, 3, 3, TimeUnit.SECONDS);
+//          }, 100, 100, TimeUnit.MILLISECONDS);
+
     }
 
-    private Channel createChannel() throws IOException {  //第一次端口随机选择，第二次端口选择第一次的
+
+
+
+    private Channel createChannel(boolean generalMessageOrNo) throws IOException {
         Socket socket = new Socket();
         socket.setReuseAddress(true);
-        if (localPort == -1) {
-            socket.connect(new InetSocketAddress(serverHost, serverPort));
-            localPort = socket.getLocalPort();
+        int targetPort = generalMessageOrNo ? serverPort : serverPort + 1;  // 根据布尔值选择端口
+        int port = generalMessageOrNo ? this.localPort : this.localPortHeart;
+
+        if (port == -1) {
+            socket.connect(new InetSocketAddress(serverHost, targetPort));
+            if (generalMessageOrNo){
+                this.localPort = socket.getLocalPort();
+            }else {
+                this.localPortHeart = socket.getLocalPort();
+            }
         } else {
-            socket.bind(new InetSocketAddress((InetAddress)null, this.localPort));
-            socket.connect(new InetSocketAddress(serverHost, serverPort));
+            socket.bind(new InetSocketAddress((InetAddress)null, port));
+            socket.connect(new InetSocketAddress(serverHost, targetPort));
         }
         return new ChannelBasic(socket);
     }
 
-    public void reconnectToServer() {
+    private void reconnectToServer() {
         try {
-            System.out.println("检测到连接中断，尝试重连");
-            channel.close();
-            CountdownTimer timer = new CountdownTimer(5);  // 创建一个5秒的倒计时
-            //timer.start();
-            this.channel = createChannel(); // 重新建立连接
-            System.out.println("重连成功！");
+                System.out.println("检测到连接中断，尝试重连");
+                channel.close();
+                channelHeart.close();
+                CountdownTimer timer = new CountdownTimer(2);  // 创建一个2秒的倒计时
+                //timer.start();
+                this.channel = createChannel(true); // 重新建立连接
+                this.channelHeart = createChannel(false);
+                System.out.println("重连成功！");
         } catch (IOException e) {
-            System.out.println("无法连接到服务器: " + e.getMessage());
+                System.out.println("无法连接到服务器: " + e.getMessage());
         }
     }
 
@@ -166,7 +188,7 @@ public class Client extends Machine{
     //回复修改确认消息，(将数据设置为不可修改?)
     @CommandMethod
     private void dRelease(String variableId) throws IOException, ClassNotFoundException{
-        ClientMessage message = new ClientMessage("dRelease", variableId, super.getPort());
+        ClientMessage message = new ClientMessage("dRelease", getId(), variableId, super.getPort());
         sendMessage(message,variableId);
     }
 
