@@ -3,10 +3,13 @@ package utils.channel;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 
 public class ChannelBasic implements Channel {
     private final Socket socket;
+    ObjectOutputStream oos;
+    ObjectInputStream ois;
 
     public ChannelBasic(Socket socket){
         this.socket = socket;
@@ -14,15 +17,31 @@ public class ChannelBasic implements Channel {
 
     @Override
     public void send(Object object) throws IOException{
-        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+        oos = new ObjectOutputStream(socket.getOutputStream());
         oos.writeObject(object);
         oos.flush();
     }
 
     @Override
     public Object recv() throws IOException, ClassNotFoundException  {
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        ois = new ObjectInputStream(socket.getInputStream());
         return ois.readObject();
+    }
+
+    @Override
+    public Object recvWithTimeout(int timeout) throws IOException, ClassNotFoundException {  //这是个带超时的recv
+        //超时之后会抛出SocketTimeoutException
+        if (timeout > 0) {
+            socket.setSoTimeout(timeout);
+        }
+        try {
+            if (ois == null) {
+                ois = new ObjectInputStream(socket.getInputStream());
+            }
+            return ois.readObject();
+        } catch (SocketTimeoutException e) {
+            throw new IOException("接收超时: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -48,5 +67,25 @@ public class ChannelBasic implements Channel {
     @Override
     public Socket getSocket() {
         return socket;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            if (ois != null) {
+                ois.close(); // 关闭输入流
+            }
+        } finally {
+            try {
+                if (oos != null) {
+                    oos.close(); // 关闭输出流
+                }
+            } finally {
+                if (socket != null) {
+                    socket.close(); // 关闭socket连接
+                }
+            }
+        }
+        System.out.println("Channel closed successfully.");
     }
 }

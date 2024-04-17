@@ -1,36 +1,30 @@
 package machine;
 
 import annotations.ModifyMethod;
+import utils.tools.Buffer;
 import utils.tools.Pair;
 import utils.channel.Channel;
 import utils.channel.ChannelBasic;
-import utils.message.Message;
 import utils.message.OperationStatus;
 import utils.processor.ServerProcessor;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 public class Server extends Machine{
-    final ServerProcessor processor = new ServerProcessor();
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
     private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();//用作锁 <varibleId，true/false>
                                                                                             //false被锁，true未被锁
@@ -39,14 +33,14 @@ public class Server extends Machine{
 
     public Server(int port, String id) throws IOException {
         super(id, port);
-        processor.setServer(this);
+        restoreFromBackup();
     }
 
     public boolean variableExistsHeap(String variableId){
         return heap.containsKey(variableId);
     }
 
-    public void start() throws ClassNotFoundException, IOException {  //多线程部分
+    public void start() throws IOException {  //多线程部分
         try {
             System.out.println("Server started on port " + super.getPort());
             while (!Thread.currentThread().isInterrupted()) {
@@ -54,30 +48,38 @@ public class Server extends Machine{
 
 
                 if (companionThread.compareAndSet(false, true)) {   //每30秒执行一次，拿来做心跳也不错
-                    startCompanionThread(); // 启动备份守护线程
+                    System.out.println("陪伴线程启动！！！！");
+                    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+                    executorService.scheduleAtFixedRate(this::backUp, 0, 30, TimeUnit.SECONDS);
                 }
 
                 int clientPort = clientSocket.getPort();
                 ExecutorService executor = clientThreads.computeIfAbsent(clientPort, k -> Executors.newSingleThreadExecutor());
                 executor.execute(() -> {
                     try {
+                        ServerProcessor processor = new ServerProcessor();
+                        processor.setServer(this);
                         Channel channel = new ChannelBasic(clientSocket);
+                           //每个线程都有个自己的processor，方便进行心跳间隔计算
                         while (!clientSocket.isClosed()) {
                             System.out.println("处理客户端请求");
-                            Message message = processor.process(channel, " ");
+                            processor.process(channel, " ");
                             System.out.println("heap： " + getHeap());
-                            channel.send(message);
                         }
-                        } catch (Exception e) {
-                            System.out.println("处理客户端请求时出错: " + e.getMessage());
-                        } finally {
-                            try {
-                                clientSocket.close();
-                            } catch (IOException e) {
-                                System.out.println("关闭客户端连接时出错: " + e.getMessage());
-                            }
+//                        if (! processor.buffer.getJobList().isEmpty())
+//                            processor.thread.start();
+//                        else {
+//                            processor.setShouldStop(true);
+//                        }
+                    } catch (Exception e) {
+                        System.out.println("处理客户端请求时出错: " + e.getMessage());
+                    } finally {
+                        try {
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            System.out.println("关闭客户端连接时出错: " + e.getMessage());
                         }
-
+                    }
                 });
             }
         } catch (SocketException e) {
@@ -89,13 +91,7 @@ public class Server extends Machine{
         }
     }
 
-    public void startCompanionThread() {
-        System.out.println("陪伴线程启动！！！！");
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(this:: runCompanionTask, 30, 30, TimeUnit.SECONDS);
-    }
-
-    private void runCompanionTask() {
+    private void backUp() {
         try {
             Path backupDir = Paths.get("log");
             if (!Files.exists(backupDir)) {
@@ -128,19 +124,47 @@ public class Server extends Machine{
         }
     }
 
+    private void restoreFromBackup() {
+        Path backupDir = Paths.get("log");
+        if (!Files.exists(backupDir)) {
+            return;
+        }
+
+        try {
+            // 使用DirectoryStream列出所有文件，并找到最新的文件
+            ArrayList<Path> files = new ArrayList<>();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(backupDir)) {
+                for (Path file : stream) {
+                    files.add(file);
+                }
+            }
+
+            if (files.isEmpty()) {
+                return;
+            }
+
+            // 对文件进行排序，找到最新的一个文件
+            files.sort((f1, f2) -> Long.compare(f2.toFile().lastModified(), f1.toFile().lastModified()));
+            Path latestFile = files.get(0);
+            System.out.println("正在从最新的备份文件恢复：" + latestFile);
+
+            // 从最新的文件中读取heap和heapLock的状态
+            try (FileInputStream fileIn = new FileInputStream(latestFile.toFile());
+                 ObjectInputStream in = new ObjectInputStream(fileIn)) {
+                heap = (HashMap<String, LinkedList<Pair>>) in.readObject();
+                heapLock = (ConcurrentHashMap<String, Boolean>) in.readObject();
+                System.out.println("数据恢复成功。");
+            }
+
+        } catch (Exception e) {
+            System.out.println("恢复数据时出错：" + e.getMessage());
+        }
+    }
+
 
     public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
-
-    public void request(String methodType, String args) {
-
-    }
-
-    public void respond() throws IOException {
-        // channel.send(message);
-    }
-
 
     @ModifyMethod
     public OperationStatus modifyHeapDMalloc(String variableId){
@@ -209,7 +233,6 @@ public class Server extends Machine{
             heapLock.remove(variableId);
             return OperationStatus.SUCCESS;
         }
-
     }
 
 

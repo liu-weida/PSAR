@@ -5,7 +5,8 @@ public enum MessageType {
     DAR("dAccessRead"),
     DRE("dRelease"),
     DFR("dFree"),
-    EXP("dException"); // 代表不同的命令类型，如dMalloc, dAccessWrite等
+    EXP("dException"), // 代表不同的命令类型，如dMalloc, dAccessWrite等
+    HBM("HeartbeatMessage"); //心跳
 
     private final String description;
 
