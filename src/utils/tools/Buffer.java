@@ -17,10 +17,13 @@ public class Buffer {
     }
 
     public void remove(String key) {
-        for (Pair pair: jobList) {
+        Iterator<Pair> it = jobList.iterator();
+        while (it.hasNext()){
+            Pair pair = it.next();
             ClientMessage cm = (ClientMessage) pair.first();
-            if (cm.getVariableId().equals(key))
-                jobList.remove(cm);
+            if(cm.getVariableId().equals(key)){
+                it.remove();
+            }
         }
         countMap.remove(key);
     }
