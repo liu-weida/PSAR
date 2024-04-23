@@ -32,7 +32,7 @@ public class ServerMessage implements Message, Serializable {
         return successes;
     }
 
-    public OperationStatus getMessage(){
+    public OperationStatus getOperationStatus(){
         return message;
     }
 
@@ -40,10 +40,12 @@ public class ServerMessage implements Message, Serializable {
 
     public InetAddress getClientHost() { return clientHost; }
 
+
+
     public String toString() {
         return "Message Type :" + getMessageType() + "\n" +
                 "State :" + getSuccesses() + "\n" +
-                "Message :" + getMessage() + "\n"+
+                "Message :" + getOperationStatus() + "\n"+
                 "Client Port :" + getClientPort() + "\n" +
                 "Client Host :" + getClientHost();
     }

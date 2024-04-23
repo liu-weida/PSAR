@@ -1,9 +1,9 @@
 package machine;
 
 import annotations.ModifyMethod;
+import utils.channel.ChannelBasic;
 import utils.tools.Pair;
 import utils.channel.Channel;
-import utils.channel.ChannelBasic;
 import utils.message.OperationStatus;
 import utils.processor.ServerProcessor;
 
@@ -11,7 +11,6 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,11 +32,15 @@ public class Server extends Machine{
     private ServerSocket serverSocketHeart;  //用于心跳
     private int heartPort;
 
+
+
+
     public Server(int port, String id) throws IOException {
         super(id, port);
-        restoreFromBackup();     //为了测试！！！ 正式使用的时候记得取消注释
+        //restoreFromBackup();     //为了测试！！！ 正式使用的时候记得取消注释
         heartPort = port+1;
         serverSocketHeart = new ServerSocket(heartPort);   //用于心跳
+        bufferDisplay();
     }
 
 
@@ -84,7 +87,7 @@ public class Server extends Machine{
                 processor.setServer(this);
                 Channel channel = new ChannelBasic(clientSocket);
                 while (!clientSocket.isClosed()) {
-                    processor.process(channel, " ");
+                    processor.process(channel, " ",null);
                 }
             } catch (Exception e) {
                 System.out.println("处理客户端请求时出错: " + e.getMessage());
@@ -173,6 +176,19 @@ public class Server extends Machine{
         } catch (Exception e) {
             System.out.println("恢复数据时出错：" + e.getMessage());
         }
+    }
+
+    private void bufferDisplay(){
+
+        ScheduledExecutorService singletonExecutorService = Executors.newSingleThreadScheduledExecutor();
+        Runnable task = () -> {
+
+            ChannelBasic.printMessageCounts();
+            ChannelBasic.printLockedMessageCounts();
+
+        };
+        singletonExecutorService.scheduleAtFixedRate(task, 1, 1, TimeUnit.SECONDS);
+
     }
 
     public boolean variableExistsHeap(String variableId){

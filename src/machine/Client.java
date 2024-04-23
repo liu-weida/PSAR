@@ -6,7 +6,6 @@ import utils.message.*;
 import utils.channel.Channel;
 import utils.processor.ClientProcessor;
 import utils.tools.CountdownTimer;
-import utils.tools.Pair;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -97,7 +96,7 @@ public class Client extends Machine{
                 channel.close();
                 channelHeart.close();
                 CountdownTimer timer = new CountdownTimer(2);  // 创建一个2秒的倒计时
-                //timer.start();
+                timer.start();
                 this.channel = createChannel(true); // 重新建立连接
                 this.channelHeart = createChannel(false);
                 System.out.println("重连成功！");
@@ -202,12 +201,12 @@ public class Client extends Machine{
     private void sendMessage(Message message, String id) throws IOException, ClassNotFoundException {
 
         try {
-            channel.send(message);
+            channel.sendC2S(message);
         }catch (IOException e){
             reconnectToServer();
-            channel.send(message);
+            channel.sendC2S(message);
         }
-        processor.process(channel, id);
+        processor.process(channel, id, message);
 
     }
 
