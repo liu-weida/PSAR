@@ -1,7 +1,7 @@
 package machine;
 
 import annotations.CommandMethod;
-import utils.channel.ChannelBasic;
+import utils.channel.ChannelWithBuffer;
 import utils.message.*;
 import utils.channel.Channel;
 import utils.processor.ClientProcessor;
@@ -13,7 +13,10 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +40,8 @@ public class Client extends Machine{
         listenForClientMessages();
         heartBeat();
     }
+
+
 
 
     private void heartBeat() {
@@ -87,7 +92,7 @@ public class Client extends Machine{
             socket.bind(new InetSocketAddress((InetAddress)null, port));
             socket.connect(new InetSocketAddress(serverHost, targetPort));
         }
-        return new ChannelBasic(socket);
+        return new ChannelWithBuffer(socket);
     }
 
     private void reconnectToServer() {
@@ -113,6 +118,19 @@ public class Client extends Machine{
         return localHeap;
     }
 
+    public List<String> getAllStringsFromLocalHeap() {
+        List<String> stringsList = new ArrayList<>();
+
+        for (Map.Entry<String, Object> entry : localHeap.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                stringsList.add((String) value);
+            }
+        }
+
+        return stringsList;
+    }
+
     public void setObject(String variableId, Object o){
         localHeap.put(variableId, o);
     }
@@ -132,7 +150,7 @@ public class Client extends Machine{
     }
 
     public Channel connectToClient(InetAddress host, int port) throws IOException {
-        return new ChannelBasic(new Socket(host, port));
+        return new ChannelWithBuffer(new Socket(host, port));
     }
 
     public void listenForClientMessages() {
@@ -142,7 +160,7 @@ public class Client extends Machine{
 
                     System.out.println("lfcm已启动");
 
-                    Channel localChannel = new ChannelBasic(super.getServerSocket().accept());
+                    Channel localChannel = new ChannelWithBuffer(super.getServerSocket().accept());
 
                     System.out.println("read开始~");
 

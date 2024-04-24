@@ -1,7 +1,7 @@
 package utils.processor;
 
 import machine.Server;
-import utils.channel.ChannelBasic;
+import utils.channel.ChannelWithBuffer;
 import utils.tools.Pair;
 import utils.message.*;
 import utils.channel.Channel;
@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +81,6 @@ public class ServerProcessor implements Processor {
                 case CLIENT ->  handlingHBClient((HeartbeatMessage) messageRecy);
             }
         } else if (messageRecy instanceof ClientMessage){  //收到的是客户端信息
-            channel.ownQueuePOP();
             handlingClientMessage((ClientMessage) messageRecy, channel);
         }
     }
@@ -135,8 +133,11 @@ public class ServerProcessor implements Processor {
         System.out.println("heap: " + server.getHeap());
 
         if (message.getOperationStatus() == LOCKED){
-            ChannelBasic.addMessageToLockedMap(clientMessage);
+            ChannelWithBuffer.addMessageToLockedMap(clientMessage);
         }
+
+        channel.ownQueuePOP();
+
         channel.send(message);
     }
 
@@ -213,7 +214,7 @@ public class ServerProcessor implements Processor {
         switch (server.modifyHeapDRelease(variableId)) {
             case SUCCESS -> {
 
-                ChannelBasic.removeMessagesByVariableId(variableId);
+                ChannelWithBuffer.removeMessagesByVariableId(variableId);
 
                 return new ServerMessage(MessageType.DRE, SUCCESS);
             }

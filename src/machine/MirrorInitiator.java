@@ -1,7 +1,7 @@
 package machine;
 
 import utils.channel.Channel;
-import utils.channel.ChannelBasic;
+import utils.channel.ChannelWithBuffer;
 import utils.message.HeartbeatMessage;
 import utils.message.OperationStatus;
 
@@ -22,7 +22,7 @@ public class MirrorInitiator extends Machine {
     private int serverport = 8080;
     public MirrorInitiator(String id, int port) throws IOException {
         super(id, port);
-        this.channel = new ChannelBasic(new Socket(serverHost, serverport+1));
+        this.channel = new ChannelWithBuffer(new Socket(serverHost, serverport+1));
         startHeartbeat();
     }
 

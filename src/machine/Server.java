@@ -1,7 +1,7 @@
 package machine;
 
 import annotations.ModifyMethod;
-import utils.channel.ChannelBasic;
+import utils.channel.ChannelWithBuffer;
 import utils.tools.Pair;
 import utils.channel.Channel;
 import utils.message.OperationStatus;
@@ -85,7 +85,7 @@ public class Server extends Machine{
             try {
                 ServerProcessor processor = new ServerProcessor();
                 processor.setServer(this);
-                Channel channel = new ChannelBasic(clientSocket);
+                Channel channel = new ChannelWithBuffer(clientSocket);
                 while (!clientSocket.isClosed()) {
                     processor.process(channel, " ",null);
                 }
@@ -183,8 +183,8 @@ public class Server extends Machine{
         ScheduledExecutorService singletonExecutorService = Executors.newSingleThreadScheduledExecutor();
         Runnable task = () -> {
 
-            ChannelBasic.printMessageCounts();
-            ChannelBasic.printLockedMessageCounts();
+            ChannelWithBuffer.printMessageCounts();
+            ChannelWithBuffer.printLockedMessageCounts();
 
         };
         singletonExecutorService.scheduleAtFixedRate(task, 1, 1, TimeUnit.SECONDS);
