@@ -65,40 +65,25 @@ public class ChannelWithBuffer implements Channel {
 
         if (message instanceof ClientMessage){
             ownQueueOffer(message);
-            System.out.println("offer");
-            System.out.println(message.toString() + "aaaaaaaaaa");
+            //System.out.println(message.toString() );
         }
         return message;
-    }
-
-    // 这个用来处理需要经过消息队列的消息
-    public void sendC2S(Message message) throws IOException {
-
-        send(message);
     }
 
     public void ownQueueOffer(Message message){
         ownQueue.offer(message);
 
 
-        System.out.println(Arrays.toString(ownQueue.toArray()) + "offffffffffff");
+        //System.out.println(Arrays.toString(ownQueue.toArray()));
     }
     public void ownQueuePOP(){
         System.out.println("触发pop");
 
-        System.out.println(Arrays.toString(ownQueue.toArray()) + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        //System.out.println(Arrays.toString(ownQueue.toArray()));
 
 
         Message message = ownQueue.poll();
 
-
-        if (message != null) {
-            System.out.println(message.toString() + "   message~~~~~~~~~~~~~~`");
-        }else {
-            System.out.println("啊啊啊啊啊啊啊");
-        }
-
-        //ownQueue.remove();
 
         removeMessageFromMap(message);
     }

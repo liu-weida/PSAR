@@ -1,5 +1,7 @@
 package utils.message;
 
+import utils.enums.OperationStatus;
+
 import java.io.Serializable;
 import java.net.InetAddress;
 

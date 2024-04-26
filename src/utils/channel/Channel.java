@@ -15,8 +15,6 @@ public interface Channel {
     void send(Message message) throws IOException;  // 服务器到客户端发送消息
     Object recv() throws IOException, ClassNotFoundException;  // 服务器到客户端接收消息
 
-    // C2S通信方法
-    void sendC2S(Message message) throws IOException;  // 客户端到服务器发送消息
 
     public void ownQueueOffer(Message message);
     public void ownQueuePOP();

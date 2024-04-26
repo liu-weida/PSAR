@@ -1,10 +1,13 @@
 package machine;
 
 import annotations.ModifyMethod;
+import rmi.ServerErrorSet;
+import rmi.ForcedServerShutdown;
 import utils.channel.ChannelWithBuffer;
+import utils.enums.ServerState;
 import utils.tools.Pair;
 import utils.channel.Channel;
-import utils.message.OperationStatus;
+import utils.enums.OperationStatus;
 import utils.processor.ServerProcessor;
 
 import java.io.*;
@@ -15,6 +18,11 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -23,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Server extends Machine{
+public class Server extends Machine implements ForcedServerShutdown, ServerErrorSet {
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
     private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();//用作锁 <varibleId，true/false>
     //false被锁，true未被锁
@@ -33,15 +41,16 @@ public class Server extends Machine{
     private int heartPort;
 
 
-
-
     public Server(int port, String id) throws IOException {
         super(id, port);
         //restoreFromBackup();     //为了测试！！！ 正式使用的时候记得取消注释
         heartPort = port+1;
         serverSocketHeart = new ServerSocket(heartPort);   //用于心跳
-        bufferDisplay();
+        //bufferDisplay();
+        registerRmiServer();
     }
+
+
 
 
     public void start() throws IOException {
@@ -90,7 +99,7 @@ public class Server extends Machine{
                     processor.process(channel, " ",null);
                 }
             } catch (Exception e) {
-                System.out.println("处理客户端请求时出错: " + e.getMessage());
+                System.out.println("处理客户端请求时出错: " + e.getMessage() );
             } finally {
                 try {
                     clientSocket.close();
@@ -191,6 +200,7 @@ public class Server extends Machine{
 
     }
 
+
     public boolean variableExistsHeap(String variableId){
         return heap.containsKey(variableId);
     }
@@ -267,5 +277,75 @@ public class Server extends Machine{
         }
     }
 
+
+    @Override
+    public void forcedserverShutdown() throws RemoteException {
+        backUp();
+        try {
+            System.out.println("正在立即关闭服务器...");
+
+            // 立即关闭心跳服务的服务器套接字
+            if (serverSocketHeart != null && !serverSocketHeart.isClosed()) {
+                serverSocketHeart.close();
+                System.out.println("心跳服务套接字已立即关闭。");
+            }
+
+            // 立即关闭主服务的服务器套接字
+            ServerSocket mainServerSocket = super.getServerSocket();
+            if (mainServerSocket != null && !mainServerSocket.isClosed()) {
+                mainServerSocket.close();
+                System.out.println("主服务套接字已立即关闭。");
+            }
+
+            // 立即关闭所有客户端线程
+            clientThreads.forEach((port, executor) -> {
+                immediateShutdown(executor);
+            });
+
+            System.out.println("所有客户端线程已被立即关闭。");
+
+            // 关闭进程
+            System.exit(0);
+
+        } catch (IOException e) {
+            System.out.println("关闭服务器时发生错误: " + e.getMessage());
+        }
+    }
+    private void immediateShutdown(ExecutorService pool) {
+        if (pool != null) {
+            pool.shutdownNow(); // 立即尝试停止所有正在执行的任务
+        }
+    }
+
+    private void registerRmiServer() {
+        try {
+            Server obj = this;
+            Remote stub = (Remote) UnicastRemoteObject.exportObject(obj, 0);  // 导出一次
+            Registry registry;
+            try {
+                registry = LocateRegistry.createRegistry(1099);
+                System.out.println("RMI registry created.");
+            } catch (RemoteException e) {
+                System.out.println("Registry already exists.");
+                registry = LocateRegistry.getRegistry(1099);
+            }
+
+            // 将同一个远程对象以不同的名字绑定到注册表
+            registry.rebind("RemoteShutdownService", stub);
+            System.out.println("Remote Shutdown Service bound in registry.");
+            registry.rebind("ServerErrorService", stub);
+            System.out.println("Server Error Service bound in registry.");
+        } catch (Exception e) {
+            System.err.println("RMI server exception: " + e.toString());
+            e.printStackTrace();
+        }
+    }
+
+
+
+    @Override
+    public void setServerError(ServerState serverState) throws RemoteException {
+        ServerProcessor.setNormalorNot(serverState);
+    }
 
 }

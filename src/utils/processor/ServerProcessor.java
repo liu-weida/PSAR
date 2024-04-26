@@ -2,6 +2,10 @@ package utils.processor;
 
 import machine.Server;
 import utils.channel.ChannelWithBuffer;
+import utils.enums.HeartSource;
+import utils.enums.HeartState;
+import utils.enums.OperationStatus;
+import utils.enums.ServerState;
 import utils.tools.Pair;
 import utils.message.*;
 import utils.channel.Channel;
@@ -10,29 +14,34 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static utils.message.OperationStatus.*;
+import static utils.enums.OperationStatus.*;
 
 public class ServerProcessor implements Processor {
     private Server server = null;
     private Pair pair;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private volatile long lastHeartbeatTime = System.currentTimeMillis();
-
-    private AtomicBoolean atomicBoolean = new AtomicBoolean(true); //用来测试，记得删
-
+    private static ServerState serverState = ServerState.normal;
 
 
+    private void checkHeartbeat(HeartbeatMessage heartbeatMessage) {
+        if (System.currentTimeMillis() - lastHeartbeatTime > 3000  || heartbeatMessage.getSource() != HeartSource.CLIENT || heartbeatMessage.getOperationStatus() != HeartState.HEART || heartbeatMessage == null) { //3s
+            //System.out.println("未收到客户端心跳");
 
-    private void checkHeartbeat() {
-        if (System.currentTimeMillis() - lastHeartbeatTime > 30000) { //30s
-            System.out.println("未收到客户端心跳");
 
-            LinkedList<String> keysToRemove = new LinkedList<>();
+            InetAddress host = (InetAddress) pair.first();
+            int port = (int)pair.second();
+
+
+            System.out.println("客户端(" + host + "   " + port + ")" + "发生错误，已断开连接！");
+            System.out.println("清理该客户端痕迹");
+
+//            LinkedList<String> keysToRemove = new LinkedList<>();
 
             // 遍历HashMap
             for (String key : server.getHeap().keySet()) {
@@ -49,18 +58,19 @@ public class ServerProcessor implements Processor {
                     }
                 }
 
-                // 如果找到了Pair，并且列表为空，则标记键为删除
-                if (pairFound && pairs.isEmpty()) {
-                    keysToRemove.add(key);
-                    System.out.println("List under key '" + key + "' is now empty and will be removed from the heap.");
-                }
+//                // 如果找到了Pair，并且列表为空，则标记键为删除
+//                if (pairFound && pairs.isEmpty()) {
+//                    keysToRemove.add(key);
+//                    System.out.println("List under key '" + key + "' is now empty and will be removed from the heap.");
+//                }
             }
 
-            // 删除所有标记的键
-            for (String key : keysToRemove) {
-                server.getHeap().remove(key);
-                System.out.println("Removed key '" + key + "' from the heap.");
-            }
+//            // 删除所有标记的键
+//            for (String key : keysToRemove) {
+//                server.getHeap().remove(key);
+//                System.out.println("Removed key '" + key + "' from the heap.");
+//            }
+            scheduler.shutdownNow();
        }
 
     }
@@ -69,7 +79,7 @@ public class ServerProcessor implements Processor {
         this.server = server;
     }
 
-    public void process(Channel channel, String id,Message message) throws IOException, ClassNotFoundException {
+    public void process(Channel channel, String id,Message message) throws IOException, ClassNotFoundException, InterruptedException {
 
         //System.out.println("waiting for message on port : " + channel.getRemotePort());   //这句记得取消注释
 
@@ -85,30 +95,54 @@ public class ServerProcessor implements Processor {
         }
     }
 
-    private void handlingHBMirror(Channel channel) throws IOException {
-        System.out.println("收到来自镜像的心跳信息");
+    private void handlingHBMirror(Channel channel) throws IOException, InterruptedException {
+        //System.out.println("收到来自镜像的心跳信息");
 
-        System.out.println(getCurrentProcessId() + "   pid");
 
-        if (atomicBoolean.get()) {  //用来测试，记得删
-            atomicBoolean.set(false);
-            HeartbeatMessage hbm = new HeartbeatMessage(HeartbeatMessage.Source.SERVER, HEARTNORMAL, getCurrentProcessId());
-            channel.send(hbm);
-        } else {
-            channel.send(null);
+        switch (serverState){
+
+            case timeout -> {
+                Thread.sleep(100000); //100s
+                channel.send(null);
+            }
+            case errorSource -> {
+                Random random = new Random(3);
+                int index = random.nextInt();
+
+                switch (index){
+                    case 0 -> channel.send(new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEARTNORMAL));
+                    case 1 -> channel.send(new HeartbeatMessage(HeartSource.MIRROR,HeartState.HEARTNORMAL));
+                    case 2 -> channel.send(new HeartbeatMessage(null,HeartState.HEARTNORMAL));
+                }
+            }
+            case errorState -> {
+                Random random = new Random(2);
+                int index = random.nextInt();
+
+                switch (index){
+                    case 0 -> channel.send(new HeartbeatMessage(HeartSource.SERVER,HeartState.HEART));
+                    case 1 -> channel.send(new HeartbeatMessage(HeartSource.SERVER,null));
+                }
+
+            }
+            case errorNull -> {
+                channel.send(null);
+            }
+            case normal -> {
+                channel.send(new HeartbeatMessage(HeartSource.SERVER,HeartState.HEARTNORMAL));
+
+            }
         }
-        //return new HeartbeatMessage(MessageType.HBM,HEARTNORMAL,getCurrentProcessId());
+
+
     }
 
-    private void handlingHBClient(HeartbeatMessage heartbeatMessage) throws IOException {
-        scheduler.scheduleWithFixedDelay(this::checkHeartbeat, 0, 1, TimeUnit.SECONDS);
+    private void handlingHBClient(HeartbeatMessage heartbeatMessage) {
+        scheduler.scheduleWithFixedDelay(() -> checkHeartbeat(heartbeatMessage), 0, 1, TimeUnit.SECONDS);
+
         lastHeartbeatTime = System.currentTimeMillis();
 
-        //System.out.println("收到来自于客户端的心跳信息");
-
         pair = heartbeatMessage.getPair();
-
-       // System.out.println("pair已记录");
     }
 
     private void handlingClientMessage(ClientMessage clientMessage,Channel channel) throws IOException {
@@ -140,6 +174,13 @@ public class ServerProcessor implements Processor {
 
         channel.send(message);
     }
+
+
+    public static void setNormalorNot(ServerState serverState1){
+        serverState = serverState1;
+    }
+
+
 
     //返回成功信息//如果数据信息已经存在或添加数据信息失败，发送错误信息
     private ServerMessage handleDMalloc(String variableId) {
@@ -246,9 +287,7 @@ public class ServerProcessor implements Processor {
         return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
     }
 
-    public static long getCurrentProcessId() {
-        return ProcessHandle.current().pid();
-    }
+
 }
 
 

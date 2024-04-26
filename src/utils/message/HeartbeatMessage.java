@@ -1,31 +1,23 @@
 package utils.message;
 
+import utils.enums.HeartSource;
+import utils.enums.HeartState;
 import utils.tools.Pair;
 
 import java.io.Serializable;
 import java.net.InetAddress;
 
 public class HeartbeatMessage implements Message, Serializable {
-    public enum Source {
-        MIRROR, SERVER, CLIENT
-    }
 
-    private Source source;
-    private OperationStatus operationStatus;
-    private Long serverPid;
+    private HeartSource source;
+    private HeartState operationStatus;
     private Pair pair;
-    public HeartbeatMessage(Source source, OperationStatus op) {
+    public HeartbeatMessage(HeartSource source, HeartState op) {
         this.source = source;
         this.operationStatus = op;
     }
 
-    public HeartbeatMessage(Source source, OperationStatus operationStatus, Long serverPid) {
-        this.source = source;
-        this.operationStatus = operationStatus;
-        this.serverPid = serverPid;
-    }
-
-    public HeartbeatMessage(Source source, OperationStatus operationStatus, InetAddress host, int port) {
+    public HeartbeatMessage(HeartSource source, HeartState operationStatus, InetAddress host, int port) {
         this.source = source;
         this.operationStatus = operationStatus;
         this.pair = new Pair(host,port);
@@ -35,24 +27,20 @@ public class HeartbeatMessage implements Message, Serializable {
         return pair;
     }
 
-    public Source getSource() {
+    public HeartSource getSource() {
         return source;
     }
 
-    public OperationStatus getOperationStatus() {
+    public HeartState getOperationStatus() {
         return operationStatus;
     }
 
-    public Long getServerPid() {
-        return serverPid;
-    }
 
     @Override
     public String toString() {
         return "HeartbeatMessage{" +
                 "source=" + source +
                 ", operationStatus=" + operationStatus +
-                ", serverPid=" + serverPid +
                 ", pair=" + pair +
                 '}';
     }

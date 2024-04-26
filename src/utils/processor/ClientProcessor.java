@@ -2,6 +2,7 @@ package utils.processor;
 
 import machine.Client;
 import utils.channel.Channel;
+import utils.enums.OperationStatus;
 import utils.message.*;
 
 import java.io.IOException;

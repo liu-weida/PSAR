@@ -1,7 +1,11 @@
 package machine;
 
 import annotations.CommandMethod;
+import rmi.ClientErrorSet;
 import utils.channel.ChannelWithBuffer;
+import utils.enums.ClientState;
+import utils.enums.HeartSource;
+import utils.enums.HeartState;
 import utils.message.*;
 import utils.channel.Channel;
 import utils.processor.ClientProcessor;
@@ -13,21 +17,23 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class Client extends Machine{
+public class Client extends Machine implements ClientErrorSet {
     private HashMap<String, Object> localHeap = new HashMap<>();
     private ClientProcessor processor = new ClientProcessor();
     private Channel channel;
     private Channel channelHeart;
     private final int serverPort = 8080; // 服务器端口
     private final String serverHost = "localhost"; // 服务器地址
+    private ClientState clientState = ClientState.normal;
 
     int localPort = -1;
     int localPortHeart = -1;
@@ -39,10 +45,8 @@ public class Client extends Machine{
         processor.setCLient(this);
         listenForClientMessages();
         heartBeat();
+        registerRmiClient();
     }
-
-
-
 
     private void heartBeat() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -51,7 +55,44 @@ public class Client extends Machine{
             InetAddress localHost = channelHeart.getLocalHost();
             int localPort = super.getPort();
 
-            HeartbeatMessage heartbeatMessage = new HeartbeatMessage(HeartbeatMessage.Source.CLIENT,OperationStatus.HEART,localHost,localPort);
+            HeartbeatMessage heartbeatMessage = null;
+
+            switch (clientState){
+                case timeout -> {
+                    try {
+                        Thread.sleep(100000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    heartbeatMessage = null;
+                }
+                case errorSource -> {
+                    Random random = new Random(3);
+                    int index = random.nextInt();
+
+                    switch (index){
+                        case 0 -> heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEART,localHost,localPort);
+                        case 1 -> heartbeatMessage = new HeartbeatMessage(HeartSource.MIRROR, HeartState.HEART,localHost,localPort);
+                        case 2 -> heartbeatMessage = new HeartbeatMessage(null, HeartState.HEART,localHost,localPort);
+                    }
+                }
+                case errorState -> {
+                    Random random = new Random(2);
+                    int index = random.nextInt();
+
+                    switch (index){
+                        case 0 -> heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEARTNORMAL,localHost,localPort);
+                        case 1 -> heartbeatMessage = new HeartbeatMessage(HeartSource.MIRROR, null,localHost,localPort);
+                    }
+                }
+                case errorNull -> {
+                    heartbeatMessage = null;
+                }
+                case normal -> {
+                    heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEART,localHost,localPort);
+                }
+            }
+
 
             try {
                 channelHeart.send(heartbeatMessage);
@@ -66,8 +107,8 @@ public class Client extends Machine{
                 }
             }
 
-        }, 20, 20, TimeUnit.SECONDS);
-//        }, 3, 3, TimeUnit.SECONDS);
+//        }, 20, 20, TimeUnit.SECONDS);
+        }, 3, 3, TimeUnit.SECONDS);
 //          }, 100, 100, TimeUnit.MILLISECONDS);
 
     }
@@ -219,13 +260,36 @@ public class Client extends Machine{
     private void sendMessage(Message message, String id) throws IOException, ClassNotFoundException {
 
         try {
-            channel.sendC2S(message);
+            channel.send(message);
         }catch (IOException e){
             reconnectToServer();
-            channel.sendC2S(message);
+            channel.send(message);
         }
         processor.process(channel, id, message);
 
+    }
+
+    private void setClientState(ClientState clientState1){
+
+        clientState = clientState1;
+
+    }
+    @Override
+    public void setClientError(ClientState clientState) throws RemoteException {
+        setClientState(clientState);
+    }
+
+    private void registerRmiClient() throws RemoteException {
+        try {
+            String name = "ClientControl_" + getId(); // 唯一标识符
+            ClientErrorSet stub = (ClientErrorSet) UnicastRemoteObject.exportObject(this, 0);
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099); // 获取默认注册表或创建新的
+            registry.rebind(name, stub); // 绑定或重新绑定到注册表
+            System.out.println("Client bound in registry as " + name);
+        } catch (RemoteException e) {
+            System.err.println("Client exception: " + e.toString());
+            e.printStackTrace();
+        }
     }
 
 }
