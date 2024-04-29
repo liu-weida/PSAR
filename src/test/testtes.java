@@ -2,36 +2,30 @@ package test;
 
 import machine.Client;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class calculsCPT {
+public class testtes{
 
 
-    private List<Client> clientsList = new ArrayList<>();
+    private static List<Client> clientsList = new ArrayList<>();
 
-    private List<Runnable> jobsList = new ArrayList<>();
+    private static List<Runnable> jobsList = new ArrayList<>();
 
-    private int nb = 1;
-
-    public void createClientList(int nbClient) throws IOException {
-        int start = nb;
-        for (int i = start; i < start + nbClient; i++) {
+    public static void createClientList(int nbClient) throws IOException {
+        for (int i = 1; i < nbClient+1; i++){
             String clientName = "Client" + i;
-            int clientPort = 16060 + i;
-            Client client = new Client(clientPort, clientName);
+            int clientPort = 6060+i;
+            Client client = new Client(clientPort,clientName);
             clientsList.add(client);
         }
-        nb += nbClient;
     }
 
-    public void initiaJobList() {
+    public static void initiaJobList() {
         for (int i = 0; i < 100; i++) { // 假设有100个任务
             jobsList.add(new Runnable() {
                 @Override
@@ -51,21 +45,21 @@ public class calculsCPT {
         }
     }
 
-    private synchronized Client getClientForJob() {
+    private static synchronized Client getClientForJob() {
         // 实现获取客户端的逻辑，例如可以使用队列等待可用的客户端
         return clientsList.isEmpty() ? null : clientsList.remove(0);
     }
 
-    private synchronized void releaseClientAfterJob(Client client) {
+    private static synchronized void releaseClientAfterJob(Client client) {
         // 实现释放客户端的逻辑，把客户端重新加入到可用的客户端列表
         clientsList.add(client);
     }
 
 
-    public void clientRun(Client client) throws InvocationTargetException, IllegalAccessException, InterruptedException {
+    public synchronized static void clientRun(Client client) throws InvocationTargetException, IllegalAccessException, InterruptedException {
 
 
-        synchronized (Client.class){
+        synchronized (client){
             client.request("dAccessRead","c0");
 
             int ownCpt = getCpt(client);
@@ -75,7 +69,7 @@ public class calculsCPT {
             updateCpt(client,ccc);
         }
 
-        synchronized (Client.class){
+        synchronized (client){
             client.request("dAccessWrite","c0");
 
             client.request("dRelease","c0");
@@ -86,7 +80,7 @@ public class calculsCPT {
 
     }
 
-    int getCpt(Client client){
+    static int getCpt(Client client){
 
         HashMap<String,Object> hashMap = client.getLocalHeap();
         if (hashMap.containsKey("c0")) {
@@ -97,11 +91,11 @@ public class calculsCPT {
 
     }
 
-    void updateCpt(Client client, int newCpt) {
+    static void updateCpt(Client client, int newCpt) {
         HashMap<String, Object> hashMap = client.getLocalHeap();
         hashMap.put("c0", newCpt);
     }
-    public void initiaC0() throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
+    public static void initiaC0() throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
         Client client0 = new Client(6060,"client0");
         String c0 = "c0";
         int numC0 = 0;
@@ -112,21 +106,21 @@ public class calculsCPT {
     }
 
 
+    public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
 
+        initiaC0();
+        createClientList(5);
 
-    public long test(int nb) throws IOException, InterruptedException, InvocationTargetException, IllegalAccessException {
-        createClientList(nb);  // 假设这是一个已经定义好的方法
-        initiaJobList();          // 假设这是一个已经定义好的方法
-
-
-
-        ExecutorService executorService = Executors.newFixedThreadPool(nb);
+        initiaJobList();
 
         long startTime = System.nanoTime();  // 测试开始时间，单位为纳秒
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
 
         for (Runnable job : jobsList) {
             executorService.submit(job);
         }
+
+
 
 
         executorService.shutdown();
@@ -141,13 +135,10 @@ public class calculsCPT {
         }
         long endTime = System.nanoTime();  // 测试结束时间，单位为纳秒
 
-        long executionTime = (endTime - startTime)/1000;
+        long executionTime = (endTime - startTime)/1000000;
 
-        clientsList.clear();
-        jobsList.clear();
+        System.out.println("时间：" + executionTime + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-
-        return executionTime;
     }
 
 

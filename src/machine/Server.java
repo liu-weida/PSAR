@@ -262,7 +262,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
             return OperationStatus.SUCCESS;
         }
 
-        return OperationStatus.COMMAND_ERROR;
+        return OperationStatus.ERROR;
     }
 
     @ModifyMethod

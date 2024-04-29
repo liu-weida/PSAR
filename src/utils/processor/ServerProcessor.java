@@ -209,9 +209,10 @@ public class ServerProcessor implements Processor {
             case LOCKED -> {
                 return new ServerMessage(MessageType.DAW, LOCKED); //锁了
             }
+            default -> {
+                return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
+            }
         }
-
-        return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
     }
 
     //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
@@ -251,6 +252,9 @@ public class ServerProcessor implements Processor {
     private ServerMessage handleDRelease(String variableId) throws IOException {
         System.out.println("数据使用完毕");
 
+        if (!server.variableExistsHeap(variableId)) {
+            return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
+        }
 
         switch (server.modifyHeapDRelease(variableId)) {
             case SUCCESS -> {
