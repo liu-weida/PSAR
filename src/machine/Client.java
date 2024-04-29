@@ -1,12 +1,15 @@
 package machine;
 
 import annotations.CommandMethod;
-import utils.channel.ChannelBasic;
+import rmi.ClientErrorSet;
+import utils.channel.ChannelWithBuffer;
+import utils.enums.ClientState;
+import utils.enums.HeartSource;
+import utils.enums.HeartState;
 import utils.message.*;
 import utils.channel.Channel;
 import utils.processor.ClientProcessor;
 import utils.tools.CountdownTimer;
-import utils.tools.Pair;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -14,73 +17,137 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.HashMap;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class Client extends Machine{
+public class Client extends Machine implements ClientErrorSet {
     private HashMap<String, Object> localHeap = new HashMap<>();
     private ClientProcessor processor = new ClientProcessor();
     private Channel channel;
+    private Channel channelHeart;
     private final int serverPort = 8080; // 服务器端口
     private final String serverHost = "localhost"; // 服务器地址
+    private ClientState clientState = ClientState.normal;
 
     int localPort = -1;
+    int localPortHeart = -1;
 
     public Client(int port, String clientId) throws IOException {
         super(clientId, port);
-        System.out.println("构造函数开始执行");
-        this.channel = createChannel();
+        this.channel = createChannel(true);  //true代表正常消息的隧道
+        this.channelHeart = createChannel(false); //false代表心跳消息的隧道
         processor.setCLient(this);
         listenForClientMessages();
         heartBeat();
-        System.out.println("构造函数执行完毕");
+        registerRmiClient();
     }
-
 
     private void heartBeat() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
 
-            InetAddress localHost = channel.getLocalHost();
+            InetAddress localHost = channelHeart.getLocalHost();
             int localPort = super.getPort();
 
-            HeartbeatMessage heartbeatMessage = new HeartbeatMessage(HeartbeatMessage.Source.CLIENT,OperationStatus.HEART,localHost,localPort);
+            HeartbeatMessage heartbeatMessage = null;
 
-            try {
-                channel.send(heartbeatMessage);
-                System.out.println("客户端心跳已发送");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            switch (clientState){
+                case timeout -> {
+                    try {
+                        Thread.sleep(100000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    heartbeatMessage = null;
+                }
+                case errorSource -> {
+                    Random random = new Random(3);
+                    int index = random.nextInt();
+
+                    switch (index){
+                        case 0 -> heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEART,localHost,localPort);
+                        case 1 -> heartbeatMessage = new HeartbeatMessage(HeartSource.MIRROR, HeartState.HEART,localHost,localPort);
+                        case 2 -> heartbeatMessage = new HeartbeatMessage(null, HeartState.HEART,localHost,localPort);
+                    }
+                }
+                case errorState -> {
+                    Random random = new Random(2);
+                    int index = random.nextInt();
+
+                    switch (index){
+                        case 0 -> heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEARTNORMAL,localHost,localPort);
+                        case 1 -> heartbeatMessage = new HeartbeatMessage(HeartSource.MIRROR, null,localHost,localPort);
+                    }
+                }
+                case errorNull -> {
+                    heartbeatMessage = null;
+                }
+                case normal -> {
+                    heartbeatMessage = new HeartbeatMessage(HeartSource.CLIENT, HeartState.HEART,localHost,localPort);
+                }
             }
 
-        }, 20, 20, TimeUnit.SECONDS);
+
+            try {
+                channelHeart.send(heartbeatMessage);
+
+            } catch (IOException e) {
+
+                reconnectToServer();
+                try {
+                    channelHeart.send(heartbeatMessage);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+
+//        }, 20, 20, TimeUnit.SECONDS);
+        }, 3, 3, TimeUnit.SECONDS);
+//          }, 100, 100, TimeUnit.MILLISECONDS);
+
     }
 
-    private Channel createChannel() throws IOException {  //第一次端口随机选择，第二次端口选择第一次的
+
+
+
+    private Channel createChannel(boolean generalMessageOrNo) throws IOException {
         Socket socket = new Socket();
         socket.setReuseAddress(true);
-        if (localPort == -1) {
-            socket.connect(new InetSocketAddress(serverHost, serverPort));
-            localPort = socket.getLocalPort();
+        int targetPort = generalMessageOrNo ? serverPort : serverPort + 1;  // 根据布尔值选择端口
+        int port = generalMessageOrNo ? this.localPort : this.localPortHeart;
+
+        if (port == -1) {
+            socket.connect(new InetSocketAddress(serverHost, targetPort));
+            if (generalMessageOrNo){
+                this.localPort = socket.getLocalPort();
+            }else {
+                this.localPortHeart = socket.getLocalPort();
+            }
         } else {
-            socket.bind(new InetSocketAddress((InetAddress)null, this.localPort));
-            socket.connect(new InetSocketAddress(serverHost, serverPort));
+            socket.bind(new InetSocketAddress((InetAddress)null, port));
+            socket.connect(new InetSocketAddress(serverHost, targetPort));
         }
-        return new ChannelBasic(socket);
+        return new ChannelWithBuffer(socket);
     }
 
-    public void reconnectToServer() {
+    private void reconnectToServer() {
         try {
-            System.out.println("检测到连接中断，尝试重连");
-            channel.close();
-            CountdownTimer timer = new CountdownTimer(5);  // 创建一个5秒的倒计时
-            //timer.start();
-            this.channel = createChannel(); // 重新建立连接
-            System.out.println("重连成功！");
+                System.out.println("检测到连接中断，尝试重连");
+                channel.close();
+                channelHeart.close();
+                CountdownTimer timer = new CountdownTimer(2);  // 创建一个2秒的倒计时
+                timer.start();
+                this.channel = createChannel(true); // 重新建立连接
+                this.channelHeart = createChannel(false);
+                System.out.println("重连成功！");
         } catch (IOException e) {
-            System.out.println("无法连接到服务器: " + e.getMessage());
+                System.out.println("无法连接到服务器: " + e.getMessage());
         }
     }
 
@@ -90,6 +157,19 @@ public class Client extends Machine{
 
     public HashMap<String, Object> getLocalHeap(){
         return localHeap;
+    }
+
+    public List<String> getAllStringsFromLocalHeap() {
+        List<String> stringsList = new ArrayList<>();
+
+        for (Map.Entry<String, Object> entry : localHeap.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                stringsList.add((String) value);
+            }
+        }
+
+        return stringsList;
     }
 
     public void setObject(String variableId, Object o){
@@ -111,7 +191,7 @@ public class Client extends Machine{
     }
 
     public Channel connectToClient(InetAddress host, int port) throws IOException {
-        return new ChannelBasic(new Socket(host, port));
+        return new ChannelWithBuffer(new Socket(host, port));
     }
 
     public void listenForClientMessages() {
@@ -121,7 +201,7 @@ public class Client extends Machine{
 
                     System.out.println("lfcm已启动");
 
-                    Channel localChannel = new ChannelBasic(super.getServerSocket().accept());
+                    Channel localChannel = new ChannelWithBuffer(super.getServerSocket().accept());
 
                     System.out.println("read开始~");
 
@@ -185,8 +265,31 @@ public class Client extends Machine{
             reconnectToServer();
             channel.send(message);
         }
-        processor.process(channel, id);
+        processor.process(channel, id, message);
 
+    }
+
+    private void setClientState(ClientState clientState1){
+
+        clientState = clientState1;
+
+    }
+    @Override
+    public void setClientError(ClientState clientState) throws RemoteException {
+        setClientState(clientState);
+    }
+
+    private void registerRmiClient() throws RemoteException {
+        try {
+            String name = "ClientControl_" + getId(); // 唯一标识符
+            ClientErrorSet stub = (ClientErrorSet) UnicastRemoteObject.exportObject(this, 0);
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099); // 获取默认注册表或创建新的
+            registry.rebind(name, stub); // 绑定或重新绑定到注册表
+            System.out.println("Client bound in registry as " + name);
+        } catch (RemoteException e) {
+            System.err.println("Client exception: " + e.toString());
+            e.printStackTrace();
+        }
     }
 
 }

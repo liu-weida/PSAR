@@ -1,5 +1,7 @@
 package utils.channel;
 
+import utils.message.Message;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -16,16 +18,29 @@ public class ChannelBasic implements Channel {
     }
 
     @Override
-    public void send(Object object) throws IOException{
+    public void send(Message message) throws IOException{
         oos = new ObjectOutputStream(socket.getOutputStream());
-        oos.writeObject(object);
+        oos.writeObject(message);
         oos.flush();
     }
+
 
     @Override
     public Object recv() throws IOException, ClassNotFoundException  {
         ois = new ObjectInputStream(socket.getInputStream());
         return ois.readObject();
+    }
+
+
+
+    @Override
+    public void ownQueueOffer(Message message) {
+
+    }
+
+    @Override
+    public void ownQueuePOP() {
+
     }
 
     @Override
