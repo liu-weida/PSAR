@@ -2,17 +2,16 @@ package test;
 
 import machine.Client;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class calculsCPT {
-
+public class calculsCPT_ChangNumberOfJobs {
 
     private List<Client> clientsList = new ArrayList<>();
 
@@ -31,8 +30,8 @@ public class calculsCPT {
         nb += nbClient;
     }
 
-    public void initiaJobList() {
-        for (int i = 0; i < 100; i++) { // 假设有100个任务
+    public void initiaJobList(int nb) {
+        for (int i = 0; i < nb; i++) { // 假设有100个任务
             jobsList.add(new Runnable() {
                 @Override
                 public void run() {
@@ -115,12 +114,12 @@ public class calculsCPT {
 
 
     public long test(int nb) throws IOException, InterruptedException, InvocationTargetException, IllegalAccessException {
-        createClientList(nb);  // 假设这是一个已经定义好的方法
-        initiaJobList();          // 假设这是一个已经定义好的方法
+        createClientList(5);  // 假设这是一个已经定义好的方法
+        initiaJobList(nb);          // 假设这是一个已经定义好的方法
 
 
 
-        ExecutorService executorService = Executors.newFixedThreadPool(nb);
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
 
         long startTime = System.nanoTime();  // 测试开始时间，单位为纳秒
 
@@ -149,6 +148,5 @@ public class calculsCPT {
 
         return executionTime;
     }
-
 
 }

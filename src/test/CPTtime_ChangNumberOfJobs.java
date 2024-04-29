@@ -5,11 +5,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 
-public class CPTtime {
-
+public class CPTtime_ChangNumberOfJobs {
 
     public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
-        calculsCPT calculsCPT = new calculsCPT();
+        calculsCPT_ChangNumberOfJobs calculsCPT = new calculsCPT_ChangNumberOfJobs();
 
         calculsCPT.initiaC0();
 
@@ -17,8 +16,9 @@ public class CPTtime {
         FileWriter fileWriter = new FileWriter("test_times.csv");
         PrintWriter printWriter = new PrintWriter(fileWriter);
 
+        int[] is = {1,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000};
 
-        for (int i = 1; i <= 100; i++) {
+        for(int i: is) {
 
             long executionTime = calculsCPT.test(i);
 
@@ -30,4 +30,5 @@ public class CPTtime {
         printWriter.close();  // 关闭文件
         fileWriter.close();   // 关闭文件流
     }
+
 }
