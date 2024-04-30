@@ -15,6 +15,7 @@ public class Machine {
         this.id = id;
         this.port = port;
         serverSocket = new ServerSocket(port);
+
     }
 
     public String getId() {

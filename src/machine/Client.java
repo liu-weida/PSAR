@@ -42,7 +42,7 @@ public class Client extends Machine implements ClientErrorSet {
         super(clientId, port);
         this.channel = createChannel(true);  //true代表正常消息的隧道
         this.channelHeart = createChannel(false); //false代表心跳消息的隧道
-        processor.setCLient(this);
+        processor.setClient(this);
         listenForClientMessages();
         heartBeat();
         registerRmiClient();
@@ -112,8 +112,6 @@ public class Client extends Machine implements ClientErrorSet {
 //          }, 100, 100, TimeUnit.MILLISECONDS);
 
     }
-
-
 
 
     private Channel createChannel(boolean generalMessageOrNo) throws IOException {
@@ -229,18 +227,16 @@ public class Client extends Machine implements ClientErrorSet {
 
     //向服务器发送写入请求，(如果存在这个数据并且数据未上锁)收到确认消息，返回自己堆中该数据的地址位置，如果收到报错信息，返回null
     @CommandMethod
-    private int dAccessWrite(String id) throws IOException, ClassNotFoundException{
+    private void dAccessWrite(String id) throws IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessWrite", getId(), id, super.getPort());
         sendMessage(message,id);
-        return 1;
     }
 
     //向服务器发送读取请求，(如果存在这个数据并且数据未上锁)收到确认消息，根据返回的信息判断是否直接读取自己的数据，或向另一个客户端传输读取请求，如果读取出错，向服务器发送错误消息，读取成功修改自己的堆返回地址
     @CommandMethod
-    private int dAccessRead(String id) throws  IOException, ClassNotFoundException{
+    private void dAccessRead(String id) throws  IOException, ClassNotFoundException{
         ClientMessage message = new ClientMessage("dAccessRead", getId(), id, super.getPort());
         sendMessage(message,id);
-        return 1;
     }
 
     //回复修改确认消息，(将数据设置为不可修改?)

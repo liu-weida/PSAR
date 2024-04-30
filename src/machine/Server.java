@@ -41,6 +41,8 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
     private int heartPort;
 
 
+
+
     public Server(int port, String id) throws IOException {
         super(id, port);
         //restoreFromBackup();     //为了测试！！！ 正式使用的时候记得取消注释
@@ -48,6 +50,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         serverSocketHeart = new ServerSocket(heartPort);   //用于心跳
         //bufferDisplay();
         registerRmiServer();
+
     }
 
 
@@ -85,6 +88,8 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
             }
         }
     }
+
+
 
 
     private void createThreads(Socket clientSocket) {
