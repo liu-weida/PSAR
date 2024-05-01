@@ -42,9 +42,12 @@ Q：Que dois-je faire si le message "Unrecognised identifier xxx" apparaît pend
 A：Veuillez mettre à jour votre version du JDK et assurez-vous que vous utilisez le JDK21 ou une version supérieure. Si le problème persiste après la mise à jour, veuillez contacter les membres de notre équipe.
 
 ## Membres de l'équipe :
-Étudiants en M1, spécialité SAR, à l'Université Sorbonne :
+Université Sorbonne，Informatique，SAR，M1 :
+
 Runlin ZHOU : runlin.zhou@etu.sorbonne-universite.fr
+
 Xiaoquan LI : xiaoquan.li@etu.sorbonne-universite.fr
+
 Weida LIU : weida.liu@etu.sorbonne-universite.fr
 
 
