@@ -16,6 +16,9 @@ Ce projet est 100% réalisé en Java, veuillez préparer votre environnement Jav
 Ce projet est 100% réalisé en Java, veuillez préparer votre environnement Java avant de l'utiliser, et comme ce projet utilise certaines des dernières versions de Java, il est recommandé d'utiliser l'environnement JDK21 (et plus).
 NB : La communication entre les machines sont réalisées par des sockets, donc assurez-vous que les ports locale 8080,6060-6069 n'est pas occupée. Le port 8080 est le port du serveur, et les ports 6060-6069 sont des ports du client
 
+## Guide d'installation :
+Les fichiers de démarrage sont situés dans le dossier src/test. Avant le début des tests, il a besion d'activer StartMirror puis StartMirror.
+
 ## Introduction du répertoire :
 Le dossier src contient cinq sous-répertoire : annotation, machine, rmi, test et utils, qui contiennent tous le code source du projet,sauf que test.
 
@@ -24,7 +27,7 @@ Ensembles d'interfaces annotation définie pour l'indiquer les fonctions spécif
 ### 2. machine
 L'entité base du system, inclu le serveur, le client et le mirror laucher. Chaque machine occupe un port pour recevoir les messages envoyées par les autre machines
 ### 3. rmi
-Démarrer StartMirror dans le package de test, Il peut arrêter activement le serveur et remplacer le serveur en cas de panne du serveur.
+Il existe trois inteface RMI pour réaliser une invocation à distance en besoin de simuler les erreus déplacé dans le system. 
 ### 4. utils
 Certaine structure de données et mécanism utilisé dans le projet. 
 ### 5. test
