@@ -15,7 +15,9 @@ Démarrer StartServer dans le package de test.
 Démarrer StartMirror dans le package de test, Il peut arrêter activement le serveur et remplacer le serveur en cas de panne du serveur.
 ### 4. démarrer les clients
 a. Vous pouvez exécuter "Test_client_1", "Test_client_2" et "Test_client_3" contrôler chaque client dans sa propre console.
+
 b. Vous pouvez exécuter "Test" et contrôler plusieurs clients dans une seule console.
+
 c. Vous pouvez lancer AutoTest, qui créera automatiquement 10 clients et automatisera le processus Malloc->Write->Release->Read->Free. Par la suite, vous pouvez contrôler les clients individuels via la console.
 ### 5. démarrer le contrôleur d'erreurs
 Étant donné que l'apparition naturelle d'erreurs et de défaillances du serveur et du client est un événement à faible probabilité, nous utilisons un contrôleur d'erreurs pour déclencher activement les erreurs. Veuillez exécuter "ControlError" à partir du paquet de test, puis vous pouvez sélectionner l'erreur souhaitée en tapant un numéro dans la console, y compris, mais sans s'y limiter, le dépassement du délai de transmission du message, la réponse erronée au message, etc.
@@ -23,14 +25,20 @@ c. Vous pouvez lancer AutoTest, qui créera automatiquement 10 clients et automa
 Vous pouvez exécuter le fichier "CPTselfTest" dans le paquet de test, qui automatise 100 tâches, 5 clients et calcule le cpt automatiquement.
 ### 7. calcul du temps
 a. Vous pouvez exécuter "CPTtime_ChangeNumberOfClients" pour effectuer un test dans lequel le nombre total de tâches reste inchangé et le nombre de clients exécutant les tâches change afin de tester la relation entre le temps d'exécution et le nombre de clients.
+
 b. Vous pouvez tester la relation entre le temps d'exécution et le nombre total de tâches en exécutant "CPTtime_ChangNumberOfJobs" pour effectuer un test dans lequel le nombre de clients reste le même et le nombre total de tâches change.
 
 ## FAQ
 Q : Est-il possible de faire fonctionner le serveur sans faire fonctionner l'initiateur du serveur miroir ?
+
 A : Oui, il est possible de faire fonctionner le serveur indépendamment du serveur miroir, mais veuillez noter que dans ce cas, le serveur ne sera pas en mesure de basculer instantanément vers le serveur miroir en cas d'erreur.
+
 Q : Que dois-je faire s'il indique que le port est occupé ?
+
 A: Si un port est occupé/une adresse est occupée, veuillez vérifier si le port 8080 et les ports 6060-6069 (et les ports 16060-16100 si vous effectuez des calculs de temps) sont occupés sur votre appareil. Si nécessaire, vous pouvez vérifier les ports 8080 et 6060-6069 (et 16060-16100 si vous effectuez des calculs de temps) dans StartServer, CPTime_ChangeNumberOfClients, CPTime_ChangNumberOfJobs, Test_client_1, Test_client_2, Test_client_3, Test. AutoTest, MirrorInitiator pour modifier les ports correspondants.
+
 Q：Que dois-je faire si le message "Unrecognised identifier xxx" apparaît pendant la compilation ?
+
 A：Veuillez mettre à jour votre version du JDK et assurez-vous que vous utilisez le JDK21 ou une version supérieure. Si le problème persiste après la mise à jour, veuillez contacter les membres de notre équipe.
 
 ## Membres de l'équipe :
