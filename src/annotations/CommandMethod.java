@@ -5,7 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Retention(RetentionPolicy.RUNTIME) // 运行时保留注解，以便可以通过反射读取
-@Target(ElementType.METHOD) // 注解只能应用于方法
+/**
+ *  Marque une fonction de commande pour lecture par réflexion.
+ */
+@Retention(RetentionPolicy.RUNTIME) // L'annotation au moment de l'exécution
+@Target(ElementType.METHOD) // L'annotation peut seulement être appliquée aux méthodes
 public @interface CommandMethod {
 }
