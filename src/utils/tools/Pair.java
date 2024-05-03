@@ -3,6 +3,13 @@ package utils.tools;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * Une paire d'objets
+ * Sérialisable
+ * Implémente toString
+ * Implémente equals
+ * Implémente hashCode
+ */
 public class Pair implements Serializable {
     private Object o1;
     private Object o2;
