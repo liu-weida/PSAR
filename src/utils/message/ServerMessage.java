@@ -17,7 +17,7 @@ public class ServerMessage implements Message, Serializable {
 
     public ServerMessage(MessageType messageType, OperationStatus status) {
         this.messageType = messageType;
-        this.successes = status == OperationStatus.SUCCESS;
+        this.successes = status == OperationStatus.SUCCESS;  // SUCCESS -> true
         this.message = status; 
     }
 
