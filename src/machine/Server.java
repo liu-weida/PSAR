@@ -342,7 +342,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         }
     }
 
-    // Test de la gestion des erreurs serveur
+    // Mise en place d'erreurs de serveur
     @Override
     public void setServerError(ServerState serverState) throws RemoteException {
         ServerProcessor.setNormalorNot(serverState);
