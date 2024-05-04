@@ -32,17 +32,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Server extends Machine implements ForcedServerShutdown, ServerErrorSet {
-    // Enregistre le propriétaire de chaque donnée
+    // Enregistre le propriétaire de chaque donnée: HashMap<varibleID,linkedList<Pair<host,port>>>
     private HashMap<String, LinkedList<Pair>> heap = new HashMap<>();
     // Verrou de données pour chaque donnée : false = verrouillé, true = non verrouillé
     private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();
-    // Maintient une correspondance un-à-un entre les threads et les clients
+    // Maintient une correspondance un-à-deux entre les threads et les clients : ConcurrentHashMap<localPort,ExecutorService>
     private static ConcurrentHashMap<Integer, ExecutorService> clientThreads = new ConcurrentHashMap<>();
-    // Utilisé pour déclencher le thread compagnon
+    // Utilisé pour déclencher le thread compagnon(Pour une sauvegarde régulière des données)
     private final AtomicBoolean companionThread = new AtomicBoolean(false);
-    // Serveur pour le signal de vie
+    // ServerSocket pour HeartBeat
     private ServerSocket serverSocketHeart;
-    // Port pour le thread compagnon
+    // Port pour HeartBeat
     private int heartPort;
 
     // Constructeur du serveur
@@ -50,18 +50,20 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         super(id, port);
         restoreFromBackup();     // Charger les données de sauvegarde
         heartPort = port+1;
-        serverSocketHeart = new ServerSocket(heartPort);   // Serveur de signal de vie
+        serverSocketHeart = new ServerSocket(heartPort);   // ServerSocket pour HeartBeat
         bufferDisplay();
-        registerRmiServer();
+        registerRmiServer();  //RMI
     }
 
     // Démarrage du serveur
     public void start() throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(3);
         service.submit(this::startBackupThread); // Sauvegarde périodique des données du serveur
+        //Pour les connexions demande-réponse
         service.submit(() -> {
             handleClientConnections(super.getServerSocket());
         });
+        //Pour les connexions Heartbeat
         service.submit(() -> {
             handleClientConnections(serverSocketHeart);
         });
@@ -89,7 +91,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         }
     }
 
-    // Crée des threads pour gérer les connexions
+    // Créez deux threads pour chaque client connecté (un thread pour la demande-réponse et un thread pour la connexion Heartbeat).
     private void createThreads(Socket clientSocket) {
         int clientPort = clientSocket.getPort();
         ExecutorService executor = clientThreads.computeIfAbsent(clientPort, k -> Executors.newSingleThreadExecutor());
@@ -113,7 +115,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         });
     }
 
-    // Lance périodiquement le thread de sauvegarde des données
+    // Lance périodiquement le thread de sauvegarde des données(30s)
     private void startBackupThread(){
         if (companionThread.compareAndSet(false, true)) {
             System.out.println("Thread compagnon démarré !");
@@ -174,7 +176,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
             if (files.isEmpty()) {
                 return;
             }
-
+            
             files.sort((f1, f2) -> Long.compare(f2.toFile().lastModified(), f1.toFile().lastModified()));
             Path latestFile = files.get(0);
             System.out.println("Restauration depuis le dernier fichier de sauvegarde : " + latestFile);
