@@ -5,16 +5,20 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 
 public class Machine {
+    //机器名字
     private final String id;
+    //机器socket
     private ServerSocket serverSocket;
+    //机器port
     private final int port;
+    //机器host
     private final InetAddress host = InetAddress.getLocalHost();
-    private int maxSize = 0;
 
     public Machine(String id, int port) throws IOException {
         this.id = id;
         this.port = port;
         serverSocket = new ServerSocket(port);
+
     }
 
     public String getId() {
@@ -32,13 +36,4 @@ public class Machine {
     public InetAddress getHost() {
         return host;
     }
-
-    public int getMaxSize() {
-        return maxSize;
-    }
-
-    public void setMaxSize(int maxSize) {
-        this.maxSize = maxSize;
-    }
-
 }
