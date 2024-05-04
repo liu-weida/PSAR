@@ -2,11 +2,12 @@ package utils.message;
 
 import java.io.Serializable;
 
+//Comme son nom, ce type de message est utilisé pour les messages de demande envoyés par le client au serveur.
 public class ClientMessage implements Message, Serializable {
-    private final String command;
-    private final String clientId;
-    private final String variableId;
-    private final int clientPort;
+    private final String command;   //Type de demande
+    private final String clientId;    //L'identifiant du client qui a initié la demande
+    private final String variableId;  //Identifiant des données demandées
+    private final int clientPort;  //Port local du client (pour dAccessRead)
 
     public ClientMessage(String command, String clientId, String variableId, int clientPort) {  //for dMalloc,dAccessWrite, // dAccessRead,dFree
         this.command = command;
