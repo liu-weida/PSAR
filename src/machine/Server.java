@@ -32,45 +32,48 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Server extends Machine implements ForcedServerShutdown, ServerErrorSet {
-    private HashMap<String, LinkedList<Pair>> heap = new HashMap<>(); //HashMap<variableId,LinkedList<clientId>>，第一个值为最新数据拥有者
-    private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();//用作锁 <varibleId，true/false>
-    //false被锁，true未被锁
-    private static ConcurrentHashMap<Integer, ExecutorService> clientThreads = new ConcurrentHashMap<>();//这个用来维持线程与客户端的一对一
+    // Enregistre le propriétaire de chaque donnée
+    private HashMap<String, LinkedList<Pair>> heap = new HashMap<>();
+    // Verrou de données pour chaque donnée : false = verrouillé, true = non verrouillé
+    private ConcurrentHashMap<String, Boolean> heapLock = new ConcurrentHashMap<>();
+    // Maintient une correspondance un-à-un entre les threads et les clients
+    private static ConcurrentHashMap<Integer, ExecutorService> clientThreads = new ConcurrentHashMap<>();
+    // Utilisé pour déclencher le thread compagnon
     private final AtomicBoolean companionThread = new AtomicBoolean(false);
-    private ServerSocket serverSocketHeart;  //用于心跳
+    // Serveur pour le signal de vie
+    private ServerSocket serverSocketHeart;
+    // Port pour le thread compagnon
     private int heartPort;
 
-
+    // Constructeur du serveur
     public Server(int port, String id) throws IOException {
         super(id, port);
-        //restoreFromBackup();     //为了测试！！！ 正式使用的时候记得取消注释
+        restoreFromBackup();     // Charger les données de sauvegarde
         heartPort = port+1;
-        serverSocketHeart = new ServerSocket(heartPort);   //用于心跳
-        //bufferDisplay();
+        serverSocketHeart = new ServerSocket(heartPort);   // Serveur de signal de vie
+        bufferDisplay();
         registerRmiServer();
     }
 
-
-
-
+    // Démarrage du serveur
     public void start() throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(3);
-        service.submit(this::startBackupThread);
+        service.submit(this::startBackupThread); // Sauvegarde périodique des données du serveur
         service.submit(() -> {
             handleClientConnections(super.getServerSocket());
         });
         service.submit(() -> {
             handleClientConnections(serverSocketHeart);
         });
-        service.shutdown(); //关闭线程池的提交功能
+        service.shutdown(); // Fermer la possibilité de soumettre de nouvelles tâches au pool
         System.out.println("Server started on port " + super.getPort() + " and " + heartPort);
     }
 
-
-    private void handleClientConnections(ServerSocket serverSocket) {  // 处理通用和心跳请求
+    // Gère les connexions client
+    private void handleClientConnections(ServerSocket serverSocket) {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                Socket clientSocket = serverSocket.accept();  // 接收客户端连接
+                Socket clientSocket = serverSocket.accept();  // Accepter une connexion client
                 createThreads(clientSocket);
             }
         } catch (IOException e) {
@@ -81,12 +84,12 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
                     serverSocket.close();
                 }
             } catch (IOException e) {
-                System.out.println("Server socket close error: " + e.getMessage());
+                System.out.println("Erreur lors de la fermeture du socket serveur : " + e.getMessage());
             }
         }
     }
 
-
+    // Crée des threads pour gérer les connexions
     private void createThreads(Socket clientSocket) {
         int clientPort = clientSocket.getPort();
         ExecutorService executor = clientThreads.computeIfAbsent(clientPort, k -> Executors.newSingleThreadExecutor());
@@ -96,27 +99,30 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
                 processor.setServer(this);
                 Channel channel = new ChannelWithBuffer(clientSocket);
                 while (!clientSocket.isClosed()) {
-                    processor.process(channel, " ",null);
+                    processor.process(channel, " ", null);
                 }
             } catch (Exception e) {
-                System.out.println("处理客户端请求时出错: " + e.getMessage() );
+                System.out.println("Erreur lors du traitement de la requête client : " + e.getMessage());
             } finally {
                 try {
                     clientSocket.close();
                 } catch (IOException e) {
-                    System.out.println("关闭客户端连接时出错: " + e.getMessage());
+                    System.out.println("Erreur lors de la fermeture de la connexion client : " + e.getMessage());
                 }
             }
         });
     }
 
+    // Lance périodiquement le thread de sauvegarde des données
     private void startBackupThread(){
-        if (companionThread.compareAndSet(false, true)) {   //每30秒执行一次
-            System.out.println("陪伴线程启动！！！！");
+        if (companionThread.compareAndSet(false, true)) {
+            System.out.println("Thread compagnon démarré !");
             ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
             executorService.scheduleAtFixedRate(this::backUp, 30, 30, TimeUnit.SECONDS);
         }
     }
+
+    // Sauvegarde des données
     private void backUp() {
         try {
             Path backupDir = Paths.get("log");
@@ -133,7 +139,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
                 out.writeObject(heapLock);
             }
 
-            try (Stream<Path> files = Files.list(backupDir)) { // 检查并删除多余的备份文件
+            try (Stream<Path> files = Files.list(backupDir)) {
                 List<Path> sortedFiles = files
                         .sorted(Comparator.comparingLong(file -> file.toFile().lastModified()))
                         .collect(Collectors.toList());
@@ -150,6 +156,7 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         }
     }
 
+    // Chargement des données depuis la sauvegarde
     private void restoreFromBackup() {
         Path backupDir = Paths.get("log");
         if (!Files.exists(backupDir)) {
@@ -157,7 +164,6 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         }
 
         try {
-            // 使用DirectoryStream列出所有文件，并找到最新的文件
             ArrayList<Path> files = new ArrayList<>();
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(backupDir)) {
                 for (Path file : stream) {
@@ -169,63 +175,59 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
                 return;
             }
 
-            // 对文件进行排序，找到最新的一个文件
             files.sort((f1, f2) -> Long.compare(f2.toFile().lastModified(), f1.toFile().lastModified()));
             Path latestFile = files.get(0);
-            System.out.println("正在从最新的备份文件恢复：" + latestFile);
+            System.out.println("Restauration depuis le dernier fichier de sauvegarde : " + latestFile);
 
-            // 从最新的文件中读取heap和heapLock的状态
             try (FileInputStream fileIn = new FileInputStream(latestFile.toFile());
                  ObjectInputStream in = new ObjectInputStream(fileIn)) {
                 heap = (HashMap<String, LinkedList<Pair>>) in.readObject();
                 heapLock = (ConcurrentHashMap<String, Boolean>) in.readObject();
-                System.out.println("数据恢复成功。");
+                System.out.println("Restauration des données réussie.");
             }
 
         } catch (Exception e) {
-            System.out.println("恢复数据时出错：" + e.getMessage());
+            System.out.println("Erreur lors de la restauration des données : " + e.getMessage());
         }
     }
 
-    private void bufferDisplay(){
-
+    // Affichage périodique du nombre de messages en tampon et des messages verrouillés
+    private void bufferDisplay() {
         ScheduledExecutorService singletonExecutorService = Executors.newSingleThreadScheduledExecutor();
         Runnable task = () -> {
-
             ChannelWithBuffer.printMessageCounts();
             ChannelWithBuffer.printLockedMessageCounts();
-
         };
         singletonExecutorService.scheduleAtFixedRate(task, 1, 1, TimeUnit.SECONDS);
-
     }
 
-
+    // Vérifie si une variable existe dans le tas
     public boolean variableExistsHeap(String variableId){
         return heap.containsKey(variableId);
     }
+
+    // Getter pour la table des données
     public HashMap<String, LinkedList<Pair>> getHeap(){
         return heap;
     }
 
+    // Traitement des signaux dmalloc sur la table des données
     @ModifyMethod
     public OperationStatus modifyHeapDMalloc(String variableId){
-
         LinkedList<Pair> newList = new LinkedList<>();
         heap.put(variableId, newList);
-        heapLock.put(variableId,true);  //true -> 未被锁定
+        heapLock.put(variableId, true);
         return OperationStatus.SUCCESS;
-
     }
 
+    // Traitement des signaux daccesswrite sur la table des données
     @ModifyMethod
-    public OperationStatus modifyHeapDAccessWrite(String variableId,InetAddress host, int port){
-
-        if (heapLock.get(variableId)){    //检测是否被锁
-            heapLock.put(variableId,false);  //如果没被锁则加锁
-            System.out.println("lock锁定！");
-        }else {
-            System.out.println("lock已被锁！");
+    public OperationStatus modifyHeapDAccessWrite(String variableId, InetAddress host, int port){
+        if (heapLock.get(variableId)) {
+            heapLock.put(variableId, false);
+            System.out.println("Verrouillage activé !");
+        } else {
+            System.out.println("Verrou déjà activé !");
             return OperationStatus.LOCKED;
         }
 
@@ -237,115 +239,110 @@ public class Server extends Machine implements ForcedServerShutdown, ServerError
         localListW.addFirst(insertEl);
 
         return OperationStatus.SUCCESS;
-
     }
 
+    // Traitement des signaux daccessread sur la table des données
     @ModifyMethod
     public Pair modifyHeapDAccessRead(String variableId){
-
         if(heapLock.get(variableId)){
             return new Pair(OperationStatus.SUCCESS,heap.get(variableId).get(0));
-        }else {
-            System.out.println("lock已被锁！");
+        } else {
+            System.out.println("Verrou déjà activé !");
             return new Pair(OperationStatus.LOCKED,null);
         }
-
     }
 
+    // Traitement des signaux dmrelease sur la table des données
     @ModifyMethod
     public OperationStatus modifyHeapDRelease(String variableId){
-        System.out.println("已进入modifyHeapDRelease");
+        System.out.println("Entrée dans modifyHeapDRelease");
 
         if(!heapLock.get(variableId)){
-            heapLock.put(variableId,true);
-            System.out.println("lock已解锁！");
+            heapLock.put(variableId, true);
+            System.out.println("Verrou désactivé !");
             return OperationStatus.SUCCESS;
         }
 
-        return OperationStatus.COMMAND_ERROR;
+        return OperationStatus.ERROR;
     }
 
+    // Traitement des signaux dfree sur la table des données
     @ModifyMethod
     public OperationStatus modifyHeapDFree(String variableId){
-
         if(!heapLock.get(variableId)){
             return OperationStatus.LOCKED;
-        }else {
+        } else {
             heap.remove(variableId);
             heapLock.remove(variableId);
             return OperationStatus.SUCCESS;
         }
     }
 
-
+    // Fermeture forcée du serveur
     @Override
     public void forcedserverShutdown() throws RemoteException {
         backUp();
         try {
-            System.out.println("正在立即关闭服务器...");
+            System.out.println("Fermeture immédiate du serveur...");
 
-            // 立即关闭心跳服务的服务器套接字
             if (serverSocketHeart != null && !serverSocketHeart.isClosed()) {
                 serverSocketHeart.close();
-                System.out.println("心跳服务套接字已立即关闭。");
+                System.out.println("Socket du service de vie fermé immédiatement.");
             }
 
-            // 立即关闭主服务的服务器套接字
             ServerSocket mainServerSocket = super.getServerSocket();
             if (mainServerSocket != null && !mainServerSocket.isClosed()) {
                 mainServerSocket.close();
-                System.out.println("主服务套接字已立即关闭。");
+                System.out.println("Socket du service principal fermé immédiatement.");
             }
 
-            // 立即关闭所有客户端线程
             clientThreads.forEach((port, executor) -> {
                 immediateShutdown(executor);
             });
 
-            System.out.println("所有客户端线程已被立即关闭。");
+            System.out.println("Tous les threads clients ont été fermés immédiatement.");
 
-            // 关闭进程
             System.exit(0);
 
         } catch (IOException e) {
-            System.out.println("关闭服务器时发生错误: " + e.getMessage());
-        }
-    }
-    private void immediateShutdown(ExecutorService pool) {
-        if (pool != null) {
-            pool.shutdownNow(); // 立即尝试停止所有正在执行的任务
+            System.out.println("Erreur lors de la fermeture du serveur : " + e.getMessage());
         }
     }
 
+    // Arrêt immédiat de tous les tâches en cours dans un pool
+    private void immediateShutdown(ExecutorService pool) {
+        if (pool != null) {
+            pool.shutdownNow();
+        }
+    }
+
+    // Enregistrement du service RMI permettant aux clients d'invoquer des méthodes locales à distance
     private void registerRmiServer() {
         try {
             Server obj = this;
-            Remote stub = (Remote) UnicastRemoteObject.exportObject(obj, 0);  // 导出一次
+            Remote stub = (Remote) UnicastRemoteObject.exportObject(obj, 0);
             Registry registry;
             try {
                 registry = LocateRegistry.createRegistry(1099);
-                System.out.println("RMI registry created.");
+                System.out.println("Registre RMI créé.");
             } catch (RemoteException e) {
-                System.out.println("Registry already exists.");
+                System.out.println("Le registre existe déjà.");
                 registry = LocateRegistry.getRegistry(1099);
             }
 
-            // 将同一个远程对象以不同的名字绑定到注册表
             registry.rebind("RemoteShutdownService", stub);
-            System.out.println("Remote Shutdown Service bound in registry.");
+            System.out.println("Service de fermeture à distance enregistré dans le registre.");
             registry.rebind("ServerErrorService", stub);
-            System.out.println("Server Error Service bound in registry.");
+            System.out.println("Service d'erreur serveur enregistré dans le registre.");
         } catch (Exception e) {
-            System.err.println("RMI server exception: " + e.toString());
+            System.err.println("Exception serveur RMI : " + e.toString());
             e.printStackTrace();
         }
     }
 
-
-
+    // Test de la gestion des erreurs serveur
     @Override
     public void setServerError(ServerState serverState) throws RemoteException {
         ServerProcessor.setNormalorNot(serverState);
     }
-
 }
