@@ -5,20 +5,20 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 
 public class Machine {
-    //机器名字
+    // Nom de la machine
     private final String id;
-    //机器socket
+    // Socket de la machine
     private ServerSocket serverSocket;
-    //机器port
+    // Port de la machine
     private final int port;
-    //机器host
+    // Hôte de la machine
     private final InetAddress host = InetAddress.getLocalHost();
 
+    // Constructeur
     public Machine(String id, int port) throws IOException {
         this.id = id;
         this.port = port;
         serverSocket = new ServerSocket(port);
-
     }
 
     public String getId() {
