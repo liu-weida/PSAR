@@ -5,19 +5,20 @@ import utils.enums.OperationStatus;
 import java.io.Serializable;
 import java.net.InetAddress;
 
+//Comme son nom, ce type de message est utilisé par le serveur pour répondre au client
 public class ServerMessage implements Message, Serializable {
 
     private MessageType messageType;
     private boolean successes;
 
     private OperationStatus message;
-    int clientPort = -1; // 修改默认值为-1，表示未设置
+    int clientPort = -1; 
     InetAddress clientHost = null;
 
     public ServerMessage(MessageType messageType, OperationStatus status) {
         this.messageType = messageType;
         this.successes = status == OperationStatus.SUCCESS;
-        this.message = status; // 根据状态生成消息文本
+        this.message = status; 
     }
 
     public ServerMessage(MessageType messageType, OperationStatus status, InetAddress clientHost, int clientPort) {
