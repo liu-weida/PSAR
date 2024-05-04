@@ -1,22 +1,22 @@
 package test;
 
 import machine.Client;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class autotest {
+public class AutoTest {
     private ArrayList<Client> _clients = new ArrayList<Client>();
     Scanner scanner = new Scanner(System.in);
 
     public void autoCreateClient(){
         int firstPort = 6060;
-        for (int i = 1; i <= 10; i++){ // 索引从1开始
+        for (int i = 1; i <= 10; i++){
             try {
                 Client client = new Client(firstPort + i - 1, String.valueOf(i));
                 _clients.add(client);
-                //System.out.println("Client created successfully: port = " + (firstPort + i - 1) + ", clientID = " + i);
             } catch (Exception e){
                 System.out.println("Fail to create client");
                 e.printStackTrace();
@@ -27,9 +27,19 @@ public class autotest {
     public void testStart() {
         autoCreateClient(); // 自动创建客户端
         for (int i = 0; i < _clients.size(); i++) {
-            autoCreateDataForClient(_clients.get(i), i + 1); // 索引从1开始为每个客户端自动创建数据
+            autoCreateDataForClient(_clients.get(i), i + 1);
         }
-        System.out.println("Auto creation and data assignment completed. You can now perform requests.");
+        System.out.println("Auto creation and data assignment completed. ");
+
+        // 对c1和c2执行dMalloc, dAccessWrite, 和 dRelease
+        if (_clients.size() >= 2) { // 确保至少有两个客户端
+            for (int i = 0 ; i<10; i++){
+                mwrTest(_clients.get(i),i);
+                readTest(_clients.get(i),i);
+
+            }
+
+        }
 
         // 提供用户进行操作的选项
         while (true) {
@@ -39,7 +49,7 @@ public class autotest {
             int operation = scanner.nextInt();
             scanner.nextLine(); // consume newline
             if (operation == 1) {
-                System.out.println("Select a client by index for performing requests (index starts from 1):");
+                System.out.println("Select a client by index for performing requests (index from 1 to "+_clients.size()+"):");
                 int index = scanner.nextInt();
                 scanner.nextLine(); // consume newline
                 if (index > 0 && index <= _clients.size()) {
@@ -55,6 +65,47 @@ public class autotest {
             }
         }
     }
+
+    private void mwrTest(Client client,int i) {
+        try {
+            // 假设request方法接受操作名称和数据名称
+            client.request("dMalloc", "c"+(i+1) );
+            System.out.println("dMalloc request auto-performed for c"+ (i+1) +" .");
+
+            client.request("dAccessWrite", "c"+(i+1));
+            System.out.println("dAccessWrite request auto-performed for c"+(i+1) +" .");
+
+            client.request("dRelease", "c"+(i+1));
+            System.out.println("dRelease request auto-performed for c"+(i+1) +" .");
+        } catch (Exception e) {
+            System.out.println("Failed to auto-perform operations for " + client.getId());
+            e.printStackTrace();
+        }
+    }
+
+    private void readTest(Client client,int i) {
+        if (i != 0) {
+            try {
+                client.request("dAccessRead","c"+(i-1));
+                System.out.println("c"+(i+1) + " send read request to c" + (i-1)+" .");
+            } catch (Exception e) {
+                System.out.println("Failed to auto-perform operations for " + client.getId());
+                e.printStackTrace();
+            }
+        }else {
+            int size = _clients.size();
+
+            try {
+                client.request("dAccessRead","c"+(size-1));
+                System.out.println("c1" + " send read request to c" + (size-1) +" .");
+            } catch (Exception e) {
+                System.out.println("Failed to auto-perform operations for " + client.getId());
+                e.printStackTrace();
+
+            }
+        }
+    }
+
 
     private void autoCreateDataForClient(Client client, int index) {
         String name = "c" + index;
@@ -155,6 +206,7 @@ public class autotest {
                     System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
+
                     client.request("dAccessWrite", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
@@ -191,10 +243,8 @@ public class autotest {
 
 
     public static void main(String[] args) {
-        autotest test = new autotest();
+        AutoTest test = new AutoTest();
         test.testStart();
-        //System.out.println(1);
-        //Thread.currentThread().interrupt();
     }
 
 }

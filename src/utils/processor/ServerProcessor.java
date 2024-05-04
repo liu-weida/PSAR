@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,9 +29,11 @@ public class ServerProcessor implements Processor {
     private volatile long lastHeartbeatTime = System.currentTimeMillis();
     private static ServerState serverState = ServerState.normal;
 
+    private boolean socketCloseOrno = false;
+
 
     private void checkHeartbeat(HeartbeatMessage heartbeatMessage) {
-        if (System.currentTimeMillis() - lastHeartbeatTime > 3000  || heartbeatMessage.getSource() != HeartSource.CLIENT || heartbeatMessage.getOperationStatus() != HeartState.HEART || heartbeatMessage == null) { //3s
+        if (System.currentTimeMillis() - lastHeartbeatTime > 30000  || heartbeatMessage.getSource() != HeartSource.CLIENT || heartbeatMessage.getOperationStatus() != HeartState.HEART || heartbeatMessage == null || socketCloseOrno) { //3s
             //System.out.println("未收到客户端心跳");
 
 
@@ -83,6 +86,8 @@ public class ServerProcessor implements Processor {
 
         //System.out.println("waiting for message on port : " + channel.getRemotePort());   //这句记得取消注释
 
+
+
         Message messageRecy = (Message) channel.recv(); // 注意~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         if (messageRecy instanceof HeartbeatMessage) {  //收到的是心跳信息
@@ -93,6 +98,8 @@ public class ServerProcessor implements Processor {
         } else if (messageRecy instanceof ClientMessage){  //收到的是客户端信息
             handlingClientMessage((ClientMessage) messageRecy, channel);
         }
+
+
     }
 
     private void handlingHBMirror(Channel channel) throws IOException, InterruptedException {
@@ -209,9 +216,10 @@ public class ServerProcessor implements Processor {
             case LOCKED -> {
                 return new ServerMessage(MessageType.DAW, LOCKED); //锁了
             }
+            default -> {
+                return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
+            }
         }
-
-        return new ServerMessage(MessageType.DRE, OperationStatus.ERROR);
     }
 
     //检查是否有这个数据，如果存在并且未上锁，如果此客户不是最新消息客户，回信最新客户的地址用来联系。等待dRelease信息，接收到读取完毕消息后，设置成拥有最新消息客户(放到双向链表头部代表此客户拥有最新数据信息,如果出现问题无所谓)
@@ -221,28 +229,39 @@ public class ServerProcessor implements Processor {
             return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
         }
 
-        Object obj = server.modifyHeapDAccessRead(variableId).first();
-        //System.out.println(obj.toString() + "   obj");
-        switch ((OperationStatus) obj) {
-            case SUCCESS -> {
-                Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
 
-               // System.out.println(p.first().toString() + "  p1");
-               // System.out.println(p.second().toString() + "  p2");
+        if (server.getHeap().get(variableId).isEmpty()){
+            return new ServerMessage(MessageType.DAR, OperationStatus.UNWRITTEN);
+        }else {
 
-                ServerMessage s = new ServerMessage(MessageType.DAR, SUCCESS,(InetAddress) p.first(), (Integer) p.second());
+            System.out.println("发送");
 
-                //System.out.println(s.toString() + "  s");
+            Object obj = server.modifyHeapDAccessRead(variableId).first();
+            switch ((OperationStatus) obj) {
+                case SUCCESS -> {
+                    Pair p = (Pair) server.modifyHeapDAccessRead(variableId).second();
 
-                return s;
+                    // System.out.println(p.first().toString() + "  p1");
+                    // System.out.println(p.second().toString() + "  p2");
+
+                    ServerMessage s = new ServerMessage(MessageType.DAR, SUCCESS,(InetAddress) p.first(), (Integer) p.second());
+
+                    //System.out.println(s.toString() + "  s");
+
+                    return s;
+                }
+                case LOCKED -> {
+                    return new ServerMessage(MessageType.DAR, LOCKED);
+                }
+                default -> {
+                    return new ServerMessage(MessageType.DAR, OperationStatus.ERROR);
+                }
             }
-            case LOCKED -> {
-                return new ServerMessage(MessageType.DAR, LOCKED);
-            }
-            default -> {
-                return new ServerMessage(MessageType.DAR, OperationStatus.ERROR);
-            }
+
         }
+
+
+
 
     }
 
@@ -251,6 +270,9 @@ public class ServerProcessor implements Processor {
     private ServerMessage handleDRelease(String variableId) throws IOException {
         System.out.println("数据使用完毕");
 
+        if (!server.variableExistsHeap(variableId)) {
+            return new ServerMessage(MessageType.DAR, OperationStatus.DATA_NOT_EXISTS);
+        }
 
         switch (server.modifyHeapDRelease(variableId)) {
             case SUCCESS -> {

@@ -149,7 +149,7 @@ public class ChannelWithBuffer implements Channel {
         }
     }
 
-    public static void printLockedMessageCounts() {
+    public static void printLockedMessageCounts() {//打印锁住的数据数量
 
         for (Map.Entry<String, List<Message>> entry : lockedMessageMap.entrySet()) {
             String variableId = entry.getKey();
