@@ -16,28 +16,28 @@ import java.rmi.registry.Registry;
 
 public class MirrorInitiator extends Machine {
     private Channel channel;
-    //识别服务器状态
+    // Identifier l'état du serveur
     private boolean continueRunning = true;
-    //避免over方法重复调用
+    // Éviter les appels répétés de la méthode over
     private boolean isOverCalled = false;
-    private String serverHost =  "localhost";
+    private String serverHost = "localhost";
     private int serverport = 8080;
 
-    //构造函数
+    // Constructeur
     public MirrorInitiator(String id, int port) throws IOException {
         super(id, port);
-        this.channel = new ChannelWithBuffer(new Socket(serverHost, serverport+1));
+        this.channel = new ChannelWithBuffer(new Socket(serverHost, serverport + 1));
         startHeartbeat();
     }
 
-    //循环发送接收心跳信息
+    // Boucle d'envoi et de réception des messages de battement de cœur
     private void startHeartbeat() {
         new Thread(() -> {
             while (continueRunning) {
                 try {
                     heartbeatSend();
                     heartbeatRecv();
-                    Thread.sleep(5000);// 5s  后期得改成30
+                    Thread.sleep(5000); // À changer pour 30s plus tard
                 } catch (Exception e) {
                     handleError(e);
                 }
@@ -45,70 +45,69 @@ public class MirrorInitiator extends Machine {
         }).start();
     }
 
-    //如果出错运行此函数来尝试重启，重启一次
+    // Fonction exécutée en cas d'erreur pour tenter un redémarrage, un seul redémarrage tenté
     private void handleError(Exception e) {
         if (!isOverCalled) {
             System.out.println("An error occurred: " + e.getMessage());
             try {
                 reconnect();
             } catch (IOException | ClassNotFoundException ex) {
+                // Handle the exception
             }
-            isOverCalled = true; // 标记已调用
+            isOverCalled = true; // Marquer comme appelé
         }
     }
 
-    //发送心跳信号
+    // Envoyer un signal de battement de cœur
     private void heartbeatSend() throws IOException {
         HeartbeatMessage hbm = new HeartbeatMessage(HeartSource.MIRROR, HeartState.HEART);
         channel.send(hbm);
     }
 
-    //接收心跳信号
+    // Recevoir un signal de battement de cœur
     private void heartbeatRecv() throws IOException, ClassNotFoundException {
         HeartbeatMessage heartbeatMessage = null;
 
         try {
-            heartbeatMessage = (HeartbeatMessage) channel.recvWithTimeout(5000);  //timeout为5秒
-        }catch (SocketTimeoutException e){
+            heartbeatMessage = (HeartbeatMessage) channel.recvWithTimeout(5000); // timeout de 5 secondes
+        } catch (SocketTimeoutException e) {
             handleError(e);
         }
 
-        if (heartbeatMessage.getOperationStatus() != HeartState.HEARTNORMAL || heartbeatMessage.getSource() != HeartSource.SERVER || heartbeatMessage == null) {
-            throw new SocketException("No response received from server.");
+        if (heartbeatMessage == null || heartbeatMessage.getOperationStatus() != HeartState.HEARTNORMAL || heartbeatMessage.getSource() != HeartSource.SERVER) {
+            throw new SocketException("Pas de réponse reçue du serveur.");
         }
         //System.out.println(heartbeatMessage.toString());
-
     }
 
-    //重新连接
+    // Reconnecter
     public void reconnect() throws IOException, ClassNotFoundException {
-        if (!continueRunning) {    // 如果已经处理过，直接返回
+        if (!continueRunning) {    // Si déjà traité, retourner directement
             return;
         }
 
-        System.out.println("心跳连接失效/socket连接断开！！！");
+        System.out.println("La connexion du battement de cœur a échoué/connexion socket interrompue !!!");
         continueRunning = true;
         killServer();
 
-        System.out.println("启动镜像服务器");
-        restartServer(8080,"server");
-
+        System.out.println("Démarrer le serveur miroir");
+        restartServer(8080, "server");
     }
 
-    //关闭服务器
-    public static void killServer(){
+    // Fermer le serveur
+    public static void killServer() {
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
             ForcedServerShutdown stub = (ForcedServerShutdown) registry.lookup("RemoteShutdownService");
             stub.forcedserverShutdown();
-            System.out.println("Remote method invoked");
+            System.out.println("Méthode distante invoquée");
         } catch (Exception e) {
-            //System.err.println("Client exception: " + e.toString());
-            //e.printStackTrace();
+            // System.err.println("Client exception: " + e.toString());
+            // e.printStackTrace();
         }
     }
 
-    //重启服务器
+    // Redémarrer le serveur
     public static void restartServer(int port, String serverName) throws IOException, ClassNotFoundException {
         Server server = new Server(port, serverName);
         server.start();
