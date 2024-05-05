@@ -7,10 +7,8 @@ import java.net.InetAddress;
 
 //Comme son nom, ce type de message est utilisé par le serveur pour répondre au client
 public class ServerMessage implements Message, Serializable {
-
     private MessageType messageType;
     private boolean successes;
-
     private OperationStatus message;
     int clientPort = -1; 
     InetAddress clientHost = null;
@@ -42,8 +40,6 @@ public class ServerMessage implements Message, Serializable {
     public int getClientPort() { return clientPort; }
 
     public InetAddress getClientHost() { return clientHost; }
-
-
 
     public String toString() {
         return "Message Type :" + getMessageType() + "\n" +

@@ -9,12 +9,10 @@ import java.net.InetAddress;
 
 //Comme son nom, ce type de message est utilisé pour le mécanisme de battement de cœur.
 public class HeartbeatMessage implements Message, Serializable {
-
     private HeartSource source;  
     private HeartState operationStatus;
     private Pair pair;  // host & port
 
-    
     public HeartbeatMessage(HeartSource source, HeartState op) {
         this.source = source;
         this.operationStatus = op;
@@ -37,7 +35,6 @@ public class HeartbeatMessage implements Message, Serializable {
     public HeartState getOperationStatus() {
         return operationStatus;
     }
-
 
     @Override
     public String toString() {

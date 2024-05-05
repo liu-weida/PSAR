@@ -3,7 +3,6 @@ package utils.message;
 import java.io.Serializable;
 import java.net.InetAddress;
 
-
 //Comme son nom l'indique, ce type de message est utilisé pour dAccessRead (messagerie de client à client).
 public class SendDataMessage implements Message, Serializable {
     private String variableId;  
@@ -26,7 +25,6 @@ public class SendDataMessage implements Message, Serializable {
         this.host = host;
         this.port = port;
     }
-
 
     public String getVariableId(){
         return variableId;
