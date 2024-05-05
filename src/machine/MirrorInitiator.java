@@ -15,18 +15,22 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 public class MirrorInitiator extends Machine {
-
     private Channel channel;
+    //识别服务器状态
     private boolean continueRunning = true;
-    private boolean isOverCalled = false; // 避免over方法重复调用
+    //避免over方法重复调用
+    private boolean isOverCalled = false;
     private String serverHost =  "localhost";
     private int serverport = 8080;
+
+    //构造函数
     public MirrorInitiator(String id, int port) throws IOException {
         super(id, port);
         this.channel = new ChannelWithBuffer(new Socket(serverHost, serverport+1));
         startHeartbeat();
     }
 
+    //循环发送接收心跳信息
     private void startHeartbeat() {
         new Thread(() -> {
             while (continueRunning) {
@@ -41,6 +45,7 @@ public class MirrorInitiator extends Machine {
         }).start();
     }
 
+    //如果出错运行此函数来尝试重启，重启一次
     private void handleError(Exception e) {
         if (!isOverCalled) {
             System.out.println("An error occurred: " + e.getMessage());
@@ -52,11 +57,13 @@ public class MirrorInitiator extends Machine {
         }
     }
 
+    //发送心跳信号
     private void heartbeatSend() throws IOException {
         HeartbeatMessage hbm = new HeartbeatMessage(HeartSource.MIRROR, HeartState.HEART);
         channel.send(hbm);
     }
 
+    //接收心跳信号
     private void heartbeatRecv() throws IOException, ClassNotFoundException {
         HeartbeatMessage heartbeatMessage = null;
 
@@ -73,6 +80,7 @@ public class MirrorInitiator extends Machine {
 
     }
 
+    //重新连接
     public void reconnect() throws IOException, ClassNotFoundException {
         if (!continueRunning) {    // 如果已经处理过，直接返回
             return;
@@ -87,7 +95,8 @@ public class MirrorInitiator extends Machine {
 
     }
 
-    public static void killServer(){    //关闭服务器
+    //关闭服务器
+    public static void killServer(){
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
             ForcedServerShutdown stub = (ForcedServerShutdown) registry.lookup("RemoteShutdownService");
@@ -99,11 +108,9 @@ public class MirrorInitiator extends Machine {
         }
     }
 
-
+    //重启服务器
     public static void restartServer(int port, String serverName) throws IOException, ClassNotFoundException {
         Server server = new Server(port, serverName);
         server.start();
     }
-
-
 }
