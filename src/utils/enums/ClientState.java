@@ -1,8 +1,6 @@
 package utils.enums;
 
 public enum ClientState {
-    //client 的五个状态
+    //Cinq états du client
     timeout, errorSource,errorState,errorNull,normal
-
-
 }
