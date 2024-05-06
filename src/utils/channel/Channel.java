@@ -1,8 +1,5 @@
 package utils.channel;
 
-import utils.message.ClientMessage;
-import utils.message.Message;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -10,33 +7,36 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public interface Channel {
-    // S2C通信方法
-    void send(Message message) throws IOException;  // 服务器到客户端发送消息
-    Object recv() throws IOException, ClassNotFoundException;  // 服务器到客户端接收消息
+import utils.message.ClientMessage;
+import utils.message.Message;
 
+public interface Channel {
+    // Méthode de communication S2C (Serveur à Client)
+    void send(Message message) throws IOException;  // Envoyer un message du serveur au client
+    Object recv() throws IOException, ClassNotFoundException;  // Recevoir un message du serveur au client
 
     public void ownQueueOffer(Message message);
+
     public void ownQueuePOP();
 
-    // 接收消息，可以指定超时时间
+    // Recevoir un message avec un délai spécifié
     Object recvWithTimeout(int timeout) throws IOException, ClassNotFoundException;
 
-    // 获取远程主机地址
+    // Obtenir l'adresse de l'hôte distant
     InetAddress getRemoteHost();
 
-    // 获取远程端口号
+    // Obtenir le numéro de port distant
     int getRemotePort();
 
-    // 获取本地主机地址
+    // Obtenir l'adresse de l'hôte local
     InetAddress getLocalHost();
 
-    // 获取本地端口号
+    // Obtenir le numéro de port local
     int getLocalPort();
 
-    // 获取Socket连接
+    // Obtenir la connexion Socket
     Socket getSocket();
 
-    // 关闭连接
+    // Fermer la connexion
     void close() throws IOException;
 }
