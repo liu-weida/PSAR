@@ -12,10 +12,10 @@ public class Test {
     Scanner scanner = new Scanner(System.in);
 
     public void createClient(){
-        System.out.println("Enter client port: ");
+        System.out.print("Enter client port : ");
         int port = scanner.nextInt();
         scanner.nextLine();
-        System.out.println("Enter client ID: ");
+        System.out.print("Enter client ID : ");
         String clientId = scanner.nextLine();
 
         for (Client c : _clients) {
@@ -35,11 +35,13 @@ public class Test {
     }
 
     public void selectClient() {
+        System.out.println("------------------------------");
         System.out.println("Your clients (total = " + _clients.size() + "): ");
         for (int i = 0; i < _clients.size(); i++) {
             System.out.println(i + ": " + _clients.get(i).getId());
         }
-        System.out.println("Select client by index: ");
+        System.out.println("------------------------------");
+        System.out.print("Select client by index : ");
         int index = scanner.nextInt();
         scanner.nextLine(); // consume newline
         if (index >= 0 && index < _clients.size()) {
@@ -65,11 +67,14 @@ public class Test {
 
     public void testStart() {
         while (true) {
+            System.out.println("------------------------------");
             System.out.println("Enter operation number:");
             System.out.println("1: Create client");
             System.out.println("2: Select client");
             System.out.println("3: Auto Creation");
             System.out.println("4: End Test");
+            System.out.println("------------------------------");
+            System.out.print("Your number : ");
             int operation = scanner.nextInt();
             scanner.nextLine();
             switch (operation) {
@@ -93,22 +98,27 @@ public class Test {
     }
 
     public void printData(Client client){
-        for (String s: client.getLocalHeap().keySet()){
-            System.out.println(s + " = " + client.getLocalHeap().get(s));
+        if(client.getLocalHeap().size()==0){
+            System.out.println("This client has no data");
+        }else{
+            for (String s: client.getLocalHeap().keySet()){
+                System.out.println(s + " = " + client.getLocalHeap().get(s));
+            }
         }
     }
 
     public void testClient(Client client) {
         while (true) {
+            System.out.println("------------------------------");
             System.out.println("Controlling Client: " + client.getId());
             System.out.println("1: Create data (int)");
             System.out.println("2: Perform request");
             System.out.println("3: Print all Data");
             System.out.println("4: End control client");
-            System.out.println("Enter option number: ");
+            System.out.println("------------------------------");
+            System.out.print("Enter option number : ");
             int option = scanner.nextInt();
             scanner.nextLine(); // consume newline
-
             switch (option) {
                 case 1:
                     createData(client);
@@ -129,9 +139,9 @@ public class Test {
     }
 
     private void createData(Client client) {
-        System.out.println("Enter a name for the data: ");
+        System.out.print("Enter a name for the data : ");
         String name = scanner.nextLine();
-        System.out.println("Enter an integer value: ");
+        System.out.print("Enter an integer value : ");
         int value = scanner.nextInt();
         scanner.nextLine();
         if (! client.heapHaveData(name)) {
@@ -142,37 +152,40 @@ public class Test {
         }
     }
 
-    private void performRequest(Client client) {
-        System.out.println("Available data in the client heap:");
+    private String getRequestValue(Client client) {
         HashMap<String, Object> localHeap = client.getLocalHeap(); // 获取Client中的数据堆
         if (localHeap.isEmpty()) {
             System.out.println("No data available.");
         } else {
+            System.out.println("------------------------------");
+            System.out.println("Available data in the client heap:");
             int index = 0;
             for (String key : localHeap.keySet()) {
                 System.out.println(index++ + ": " + key);
             }
+            System.out.println("------------------------------");
         }
-
-        System.out.println("Enter the index of the data name for the operation: ");
+        System.out.print("Enter the index of the data name for the operation : ");
         int dataIndex = scanner.nextInt();
         scanner.nextLine(); // consume newline
-
         // Assuming user will enter the correct index and not handling out-of-bounds access here for simplicity
         String dataName = (String) localHeap.keySet().toArray()[dataIndex];
-
         System.out.println("Selected data name for operation: " + dataName);
-
+        return dataName;
+    }
+    private void performRequest(Client client) {
+        System.out.println("------------------------------");
         System.out.println("Available requests:");
         System.out.println("1. dMalloc");
         System.out.println("2. dAccessWrite");
         System.out.println("3. dAccessRead");
         System.out.println("4. dRelease");
         System.out.println("5. dFree");
-        System.out.println("Enter request number: ");
+        System.out.println("------------------------------");
+        System.out.print("Enter request number : ");
         int requestOption = scanner.nextInt();
         scanner.nextLine(); // consume newline
-
+        String dataName = getRequestValue(client);
         try {
             switch(requestOption) {
                 case 1:
@@ -180,23 +193,10 @@ public class Test {
                     System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
-//                    if (client.heapHaveData(dataName)) {
-//                        client.request("dAccessWrite", dataName);
-//                        System.out.println("dAccessWrite request sent for " + dataName);
-//                    } else {
-//                        System.out.println("Data does not exist");
-//                        System.out.println("Please set the object first");
-//                    }
                     client.request("dAccessWrite", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
                 case 3:
-//                    if (client.heapHaveData(dataName)) {
-//                        client.request("dAccessRead", dataName);
-//                        System.out.println("dAccessRead request sent for " + dataName);
-//                    } else {
-//                        System.out.println("Data does not exist.");
-//                    }
                     client.request("dAccessRead", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
@@ -224,7 +224,6 @@ public class Test {
             e.printStackTrace();
         }
     }
-
 //    private void testStop(){
 //        try {
 //            if (_server != null) {
@@ -243,5 +242,4 @@ public class Test {
        //System.out.println(1);
        //Thread.currentThread().interrupt();
     }
-
 }
