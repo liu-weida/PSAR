@@ -30,15 +30,12 @@ public class AutoTest {
             autoCreateDataForClient(_clients.get(i), i + 1);
         }
         System.out.println("Auto creation and data assignment completed. ");
-
-        // 对c1和c2执行dMalloc, dAccessWrite, 和 dRelease
+        //pour C1 et C2 auto process dMalloc, dAccessWrite, dRelease
         if (_clients.size() >= 2) { // 确保至少有两个客户端
             for (int i = 0 ; i<10; i++){
                 mwrTest(_clients.get(i),i);
                 readTest(_clients.get(i),i);
-
             }
-
         }
 
         // 提供用户进行操作的选项
@@ -71,10 +68,8 @@ public class AutoTest {
             // 假设request方法接受操作名称和数据名称
             client.request("dMalloc", "c"+(i+1) );
             System.out.println("dMalloc request auto-performed for c"+ (i+1) +" .");
-
             client.request("dAccessWrite", "c"+(i+1));
             System.out.println("dAccessWrite request auto-performed for c"+(i+1) +" .");
-
             client.request("dRelease", "c"+(i+1));
             System.out.println("dRelease request auto-performed for c"+(i+1) +" .");
         } catch (Exception e) {
@@ -94,14 +89,12 @@ public class AutoTest {
             }
         }else {
             int size = _clients.size();
-
             try {
                 client.request("dAccessRead","c"+(size-1));
                 System.out.println("c1" + " send read request to c" + (size-1) +" .");
             } catch (Exception e) {
                 System.out.println("Failed to auto-perform operations for " + client.getId());
                 e.printStackTrace();
-
             }
         }
     }
@@ -134,7 +127,6 @@ public class AutoTest {
             System.out.println("Enter option number: ");
             int option = scanner.nextInt();
             scanner.nextLine(); // consume newline
-
             switch (option) {
                 case 1:
                     createData(client);
@@ -179,16 +171,12 @@ public class AutoTest {
                 System.out.println(index++ + ": " + key); // 使用从1开始的索引打印
             }
         }
-
         System.out.println("Enter the index of the data name for the operation (index starts from 1): ");
         int dataIndex = scanner.nextInt();
         scanner.nextLine(); // consume newline
-
         // 用户输入的是从1开始的索引，所以要将其转换为数组（或集合）的索引（从0开始）
         String dataName = (String) localHeap.keySet().toArray()[dataIndex - 1];
-
         System.out.println("Selected data name for operation: " + dataName);
-
         System.out.println("Available requests:");
         System.out.println("1. dMalloc");
         System.out.println("2. dAccessWrite");
@@ -198,7 +186,6 @@ public class AutoTest {
         System.out.println("Enter request number: ");
         int requestOption = scanner.nextInt();
         scanner.nextLine(); // consume newline
-
         try {
             switch(requestOption) {
                 case 1:
@@ -206,13 +193,11 @@ public class AutoTest {
                     System.out.println("dMalloc request sent for " + dataName);
                     break;
                 case 2:
-
                     client.request("dAccessWrite", dataName);
                     System.out.println("dAccessWrite request sent for " + dataName);
                     break;
                 case 3:
                     String dataName2 = scanner.nextLine();
-
                     client.request("dAccessRead", dataName2);
                     System.out.println("dAccessWrite request sent for " + dataName2);
                     break;
@@ -241,10 +226,8 @@ public class AutoTest {
         }
     }
 
-
     public static void main(String[] args) {
         AutoTest test = new AutoTest();
         test.testStart();
     }
-
 }

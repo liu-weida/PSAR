@@ -10,10 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class CPTselfTest {
-
-
     private static List<Client> clientsList = new ArrayList<>();
-
     private static List<Runnable> jobsList = new ArrayList<>();
 
     public static void createClientList(int nbClient) throws IOException {
@@ -55,46 +52,34 @@ public class CPTselfTest {
         clientsList.add(client);
     }
 
-
     public synchronized static void clientRun(Client client) throws InvocationTargetException, IllegalAccessException, InterruptedException {
-
-
         synchronized (client){
             client.request("dAccessRead","c0");
-
             int ownCpt = getCpt(client);
-
             int ccc = ownCpt +1;
-
             updateCpt(client,ccc);
         }
-
         synchronized (client){
             client.request("dAccessWrite","c0");
-
             client.request("dRelease","c0");
-
             System.out.println("cpt: " + getCpt(client) );
         }
-
-
     }
 
     static int getCpt(Client client){
-
         HashMap<String,Object> hashMap = client.getLocalHeap();
         if (hashMap.containsKey("c0")) {
             return (Integer) hashMap.get("c0");
         } else {
             return -1;
         }
-
     }
 
     static void updateCpt(Client client, int newCpt) {
         HashMap<String, Object> hashMap = client.getLocalHeap();
         hashMap.put("c0", newCpt);
     }
+
     public static void initiaC0() throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
         Client client0 = new Client(6060,"client0");
         String c0 = "c0";
@@ -105,24 +90,15 @@ public class CPTselfTest {
         client0.request("dRelease",c0);
     }
 
-
     public static void main(String[] args) throws IOException, InvocationTargetException, IllegalAccessException, InterruptedException {
-
         initiaC0();
         createClientList(5);
-
         initiaJobList();
-
         long startTime = System.nanoTime();  // 测试开始时间，单位为纳秒
         ExecutorService executorService = Executors.newFixedThreadPool(5);
-
         for (Runnable job : jobsList) {
             executorService.submit(job);
         }
-
-
-
-
         executorService.shutdown();
         try {
             // 等待直到所有任务完成执行，或者等待时间超过长时间，这里设置的是1天
@@ -134,12 +110,7 @@ public class CPTselfTest {
             Thread.currentThread().interrupt(); // 保留中断状态
         }
         long endTime = System.nanoTime();  // 测试结束时间，单位为纳秒
-
         long executionTime = (endTime - startTime)/1000000;
-
         System.out.println("时间：" + executionTime + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-
     }
-
-
 }

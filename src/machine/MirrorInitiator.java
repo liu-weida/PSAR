@@ -62,6 +62,7 @@ public class MirrorInitiator extends Machine {
     private void heartbeatSend() throws IOException {
         HeartbeatMessage hbm = new HeartbeatMessage(HeartSource.MIRROR, HeartState.HEART);
         channel.send(hbm);
+        //System.out.println("mirror envoyer heartbeat");
     }
 
     // Recevoir un signal de battement de cœur
@@ -70,6 +71,7 @@ public class MirrorInitiator extends Machine {
 
         try {
             heartbeatMessage = (HeartbeatMessage) channel.recvWithTimeout(5000); // timeout de 5 secondes
+            //System.out.println("mirror reçevoir heartbeat");
         } catch (SocketTimeoutException e) {
             handleError(e);
         }

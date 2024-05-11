@@ -10,24 +10,18 @@ import java.rmi.registry.Registry;
 import java.util.Scanner;
 
 public class ControlError {
-
     private static ServerState serverState;
     private static ClientState clientState;
 
-
     private static void controlServer(){
-
         System.out.println("Please enter a server error:");
-
         System.out.println("1.timeout");
         System.out.println("2.errorSource");
         System.out.println("3.errorState");
         System.out.println("4.errorNull");
         System.out.println("5.normal");
-
         Scanner scanner = new Scanner(System.in);
         int indexServerError = scanner.nextInt();
-
         switch (indexServerError){
             case 1 -> serverState = ServerState.timeout;
             case 2 -> serverState = ServerState.errorSource;
@@ -35,7 +29,6 @@ public class ControlError {
             case 4 -> serverState = ServerState.errorNull;
             case 5 -> serverState = ServerState.normal;
         }
-
         try {
             Registry registry = LocateRegistry.getRegistry("localhost",1099);
             ServerErrorSet stub = (ServerErrorSet) registry.lookup("ServerErrorService");
@@ -45,27 +38,19 @@ public class ControlError {
             System.err.println("Client exception: " + e.toString());
             //e.printStackTrace();
         }
-
     }
 
-
     private static void controlClient(){
-
         System.out.println("Please enter the id of the client you wish to control: ");
-
         Scanner scanner = new Scanner(System.in);
         String clientID = scanner.nextLine();
-
         System.out.println("Please enter a server error:");
-
         System.out.println("1.timeout");
         System.out.println("2.errorSource");
         System.out.println("3.errorState");
         System.out.println("4.errorNull");
         System.out.println("5.normal");
-
         int indexServerError = scanner.nextInt();
-
         switch (indexServerError){
             case 1 -> clientState = ClientState.timeout;
             case 2 -> clientState = ClientState.errorSource;
@@ -73,29 +58,20 @@ public class ControlError {
             case 4 -> clientState = ClientState.errorNull;
             case 5 -> clientState = ClientState.normal;
         }
-
         changeClientState(clientID,clientState);
-
     }
 
-
     public static void main(String[] args) {
-
         System.out.println("Please select:");
-
         System.out.println("1.Server");
         System.out.println("2.Client");
-
         Scanner scanner = new Scanner(System.in);
         int indexClientError = scanner.nextInt();
-
         switch (indexClientError){
             case 1 -> controlServer();
             case 2 -> controlClient();
         }
-
     }
-
 
     public static void changeClientState(String clientId, ClientState newState) {
         try {

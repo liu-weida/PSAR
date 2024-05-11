@@ -173,6 +173,7 @@ public class Test {
         System.out.println("Selected data name for operation: " + dataName);
         return dataName;
     }
+
     private void performRequest(Client client) {
         System.out.println("------------------------------");
         System.out.println("Available requests:");
@@ -224,17 +225,6 @@ public class Test {
             e.printStackTrace();
         }
     }
-//    private void testStop(){
-//        try {
-//            if (_server != null) {
-//                _server.close(); // 关闭服务器
-//            }
-//        } catch (IOException e) {
-//            System.out.println("Error occurred while stopping the server.");
-//            e.printStackTrace();
-//        }
-//        System.out.println("Test ended.");
-//    }
 
     public static void main(String[] args) {
        Test test = new Test();
