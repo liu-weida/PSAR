@@ -23,18 +23,18 @@ public class CPTselfTest {
     }
 
     public static void initiaJobList() {
-        for (int i = 0; i < 100; i++) { // 假设有100个任务
+        for (int i = 0; i < 30; i++) { // Dans l'hypothèse de 30 tâches
             jobsList.add(new Runnable() {
                 @Override
                 public void run() {
-                    Client client = getClientForJob(); // 从某处获取一个Client对象
+                    Client client = getClientForJob();
                     if (client != null) {
                         try {
                             clientRun(client);
                         } catch (Exception e) {
                             e.printStackTrace();
                         } finally {
-                            releaseClientAfterJob(client); // 完成任务后释放Client对象
+                            releaseClientAfterJob(client); // Relâchez l'objet Client après avoir terminé la tâche
                         }
                     }
                 }
@@ -43,12 +43,12 @@ public class CPTselfTest {
     }
 
     private static synchronized Client getClientForJob() {
-        // 实现获取客户端的逻辑，例如可以使用队列等待可用的客户端
+        // Obtenir un client
         return clientsList.isEmpty() ? null : clientsList.remove(0);
     }
 
     private static synchronized void releaseClientAfterJob(Client client) {
-        // 实现释放客户端的逻辑，把客户端重新加入到可用的客户端列表
+        // Client libéré
         clientsList.add(client);
     }
 
@@ -94,23 +94,21 @@ public class CPTselfTest {
         initiaC0();
         createClientList(5);
         initiaJobList();
-        long startTime = System.nanoTime();  // 测试开始时间，单位为纳秒
+        long startTime = System.nanoTime();  // Heure de début du test
         ExecutorService executorService = Executors.newFixedThreadPool(5);
         for (Runnable job : jobsList) {
             executorService.submit(job);
         }
         executorService.shutdown();
         try {
-            // 等待直到所有任务完成执行，或者等待时间超过长时间，这里设置的是1天
             if (!executorService.awaitTermination(1, TimeUnit.DAYS)) {
-                executorService.shutdownNow(); // 尝试停止所有正在执行的任务
+                executorService.shutdownNow(); // Tentative d'arrêt de toutes les tâches en cours
             }
         } catch (InterruptedException e) {
-            executorService.shutdownNow(); // 重新尝试停止所有正在执行的任务
-            Thread.currentThread().interrupt(); // 保留中断状态
+            executorService.shutdownNow(); // Réessayer d'arrêter toutes les tâches en cours
+            Thread.currentThread().interrupt(); // Préserver l'état des interruptions
         }
-        long endTime = System.nanoTime();  // 测试结束时间，单位为纳秒
+        long endTime = System.nanoTime();  // Temps de fin de test
         long executionTime = (endTime - startTime)/1000000;
-        System.out.println("时间：" + executionTime + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     }
 }
