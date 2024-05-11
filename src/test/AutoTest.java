@@ -25,20 +25,19 @@ public class AutoTest {
     }
 
     public void testStart() {
-        autoCreateClient(); // 自动创建客户端
+        autoCreateClient(); // Création automatique de clients
         for (int i = 0; i < _clients.size(); i++) {
             autoCreateDataForClient(_clients.get(i), i + 1);
         }
         System.out.println("Auto creation and data assignment completed. ");
         //pour C1 et C2 auto process dMalloc, dAccessWrite, dRelease
-        if (_clients.size() >= 2) { // 确保至少有两个客户端
+        if (_clients.size() >= 2) { // Assurez-vous qu'il y a au moins deux clients
             for (int i = 0 ; i<10; i++){
                 mwrTest(_clients.get(i),i);
                 readTest(_clients.get(i),i);
             }
         }
 
-        // 提供用户进行操作的选项
         while (true) {
             System.out.println("Enter operation number:");
             System.out.println("1: Perform request");
@@ -50,7 +49,7 @@ public class AutoTest {
                 int index = scanner.nextInt();
                 scanner.nextLine(); // consume newline
                 if (index > 0 && index <= _clients.size()) {
-                    testClient(_clients.get(index - 1)); // 索引调整为从1开始
+                    testClient(_clients.get(index - 1)); // L'indexation est ajustée pour commencer à 1
                 } else {
                     System.out.println("Invalid client index.");
                 }
@@ -65,7 +64,6 @@ public class AutoTest {
 
     private void mwrTest(Client client,int i) {
         try {
-            // 假设request方法接受操作名称和数据名称
             client.request("dMalloc", "c"+(i+1) );
             System.out.println("dMalloc request auto-performed for c"+ (i+1) +" .");
             client.request("dAccessWrite", "c"+(i+1));
@@ -162,19 +160,18 @@ public class AutoTest {
 
     private void performRequest(Client client) {
         System.out.println("Available data in the client heap:");
-        HashMap<String, Object> localHeap = client.getLocalHeap(); // 获取Client中的数据堆
+        HashMap<String, Object> localHeap = client.getLocalHeap(); // Obtenir le tas de données dans le client
         if (localHeap.isEmpty()) {
             System.out.println("No data available.");
         } else {
             int index = 1; // 索引从1开始
             for (String key : localHeap.keySet()) {
-                System.out.println(index++ + ": " + key); // 使用从1开始的索引打印
+                System.out.println(index++ + ": " + key); // Imprime en utilisant un index commençant par 1
             }
         }
         System.out.println("Enter the index of the data name for the operation (index starts from 1): ");
         int dataIndex = scanner.nextInt();
         scanner.nextLine(); // consume newline
-        // 用户输入的是从1开始的索引，所以要将其转换为数组（或集合）的索引（从0开始）
         String dataName = (String) localHeap.keySet().toArray()[dataIndex - 1];
         System.out.println("Selected data name for operation: " + dataName);
         System.out.println("Available requests:");
