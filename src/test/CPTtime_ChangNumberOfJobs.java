@@ -30,18 +30,18 @@ public class CPTtime_ChangNumberOfJobs {
     }
 
     public void initiaJobList(int nb) {
-        for (int i = 0; i < nb; i++) { // 假设有100个任务
+        for (int i = 0; i < nb; i++) { 
             jobsList.add(new Runnable() {
                 @Override
                 public void run() {
-                    Client client = getClientForJob(); // 从某处获取一个Client对象
+                    Client client = getClientForJob(); 
                     if (client != null) {
                         try {
                             clientRun(client);
                         } catch (Exception e) {
                             e.printStackTrace();
                         } finally {
-                            releaseClientAfterJob(client); // 完成任务后释放Client对象
+                            releaseClientAfterJob(client); 
                         }
                     }
                 }
@@ -50,12 +50,10 @@ public class CPTtime_ChangNumberOfJobs {
     }
 
     private Client getClientForJob() {
-        // 实现获取客户端的逻辑，例如可以使用队列等待可用的客户端
         return clientsList.isEmpty() ? null : clientsList.remove(0);
     }
 
     private void releaseClientAfterJob(Client client) {
-        // 实现释放客户端的逻辑，把客户端重新加入到可用的客户端列表
         clientsList.add(client);
     }
 
@@ -99,24 +97,23 @@ public class CPTtime_ChangNumberOfJobs {
     }
 
     public long test(int nb) throws IOException, InterruptedException, InvocationTargetException, IllegalAccessException {
-        createClientList(5);  // 假设这是一个已经定义好的方法
-        initiaJobList(nb);          // 假设这是一个已经定义好的方法
+        createClientList(5);  
+        initiaJobList(nb);         
         ExecutorService executorService = Executors.newFixedThreadPool(5);
-        long startTime = System.nanoTime();  // 测试开始时间，单位为纳秒
+        long startTime = System.nanoTime();  
         for (Runnable job : jobsList) {
             executorService.submit(job);
         }
         executorService.shutdown();
         try {
-            // 等待直到所有任务完成执行，或者等待时间超过长时间，这里设置的是1天
             if (!executorService.awaitTermination(1, TimeUnit.DAYS)) {
-                executorService.shutdownNow(); // 尝试停止所有正在执行的任务
+                executorService.shutdownNow();
             }
         } catch (InterruptedException e) {
-            executorService.shutdownNow(); // 重新尝试停止所有正在执行的任务
-            Thread.currentThread().interrupt(); // 保留中断状态
+            executorService.shutdownNow(); 
+            Thread.currentThread().interrupt(); 
         }
-        long endTime = System.nanoTime();  // 测试结束时间，单位为纳秒
+        long endTime = System.nanoTime();  
         long executionTime = (endTime - startTime)/1000;
         clientsList.clear();
         jobsList.clear();
@@ -131,10 +128,10 @@ public class CPTtime_ChangNumberOfJobs {
         int[] is = {1,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000};
         for(int i: is) {
             long executionTime = calculsCPT.test(i);
-            printWriter.println( executionTime);  // 将测试编号和执行时间写入CSV
+            printWriter.println( executionTime);  
             //System.out.println("Test " + 5 + " completed in " + executionTime + " ms.");
         }
-        printWriter.close();  // 关闭文件
-        fileWriter.close();   // 关闭文件流
+        printWriter.close();  
+        fileWriter.close();  
     }
 }
