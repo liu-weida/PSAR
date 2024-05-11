@@ -75,7 +75,7 @@ public class ControlError {
 
     public static void changeClientState(String clientId, ClientState newState) {
         try {
-            Registry registry = LocateRegistry.getRegistry("localhost", 1099); // 连接到新的注册表端口
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099); 
             String clientName = "ClientControl_" + clientId;
             ClientErrorSet client = (ClientErrorSet) registry.lookup(clientName);
             client.setClientError(newState);
